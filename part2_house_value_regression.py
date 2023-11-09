@@ -68,10 +68,6 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # One-hot Encoding
-        
-        
-        
         # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
         return x, (y if isinstance(y, pd.DataFrame) else None)
@@ -80,6 +76,15 @@ class Regressor():
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+    # Correct empty feature instances with a normally distributed random variable using the feature mean and standard deviation
+    def fill_empty_label
+        for label in df.columns: # loop to for all labels
+        mask = df[label].isnull()
+        num_empty = mask.sum()
+        
+        if num_empty > 0: # if null values detected, replace them with a randomly generated variable
+            random_values = np.random.normal(mean, std_dev, size=num_empty)
+            df.loc[mask, label] = random_values
         
     def fit(self, x, y):
         """
