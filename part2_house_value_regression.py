@@ -2,6 +2,8 @@ import torch
 import pickle
 import numpy as np
 import pandas as pd
+import sklearn
+from sklearn.preprocessing import LabelBinarizer
 
 class Regressor():
 
@@ -27,7 +29,8 @@ class Regressor():
         X, _ = self._preprocessor(x, training = True)
         self.input_size = X.shape[1]
         self.output_size = 1
-        self.nb_epoch = nb_epoch 
+        self.nb_epoch = nb_epoch
+        
         return
 
         #######################################################################
@@ -52,11 +55,23 @@ class Regressor():
               size (batch_size, 1).
             
         """
+        
+        """
+        
+        1. 1 hot encoding
+        2. fillna
+        3. normalise
+        
+        """
 
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
 
+        # One-hot Encoding
+        
+        
+        
         # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
         return x, (y if isinstance(y, pd.DataFrame) else None)
