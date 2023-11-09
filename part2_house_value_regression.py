@@ -68,6 +68,23 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
+        # One Hot Encoding with LabelBinarizer
+        non_float_cols = [col for col in x.columns if x[col].dtype == "object"]
+        
+        if len(non_float_cols) != 0:
+            for non_float_col in non_float_cols:
+                lb = LabelBinarizer()
+                lb.fit(x[non_float_col])
+                
+                encoded = lb.fit_transform(x[non_float_col])
+                
+                for i, unique_label in enumerate(x[non_float_col].unique()):
+                    feature = "is_" + str(unique_label)
+                    
+                    x[feature] = encoded[:, i]
+                    
+        
+        
         # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
         return x, (y if isinstance(y, pd.DataFrame) else None)
@@ -77,7 +94,7 @@ class Regressor():
         #######################################################################
 
     # Correct empty feature instances with a normally distributed random variable using the feature mean and standard deviation
-    
+
         
     def fit(self, x, y):
         """
