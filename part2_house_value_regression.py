@@ -94,22 +94,22 @@ class Regressor():
         #######################################################################
 
     # Correct empty feature instances with a normally distributed random variable using the feature mean and standard deviation
-def fill_empty_labels(raw_input):
-        for label in raw_input.columns: # loop for all labels
-            if label == 'ocean_proximity': ######### dont have hot encoder yet!
-                continue
-            mean = raw_input[label].mean() # label mean 
-            std_dev = raw_input[label].std() # label std dev
-            mask = raw_input[label].isnull() # find where empty values exist
-            num_empty = mask.sum()
-            
-            if num_empty > 0: # if empty values detected
-                random_values = np.random.normal(mean, std_dev, size=num_empty).astype(int) # generate a list of varying random variables
-                random_values[random_values < 0] = 0 # only total_bedrooms has empty values, ensure values are positive whole numbers
+    def fill_empty_labels(raw_input):
+            for label in raw_input.columns: # loop for all labels
+                if label == 'ocean_proximity': ######### dont have hot encoder yet!
+                    continue
+                mean = raw_input[label].mean() # label mean 
+                std_dev = raw_input[label].std() # label std dev
+                mask = raw_input[label].isnull() # find where empty values exist
+                num_empty = mask.sum()
                 
-                raw_input.loc[mask, label] = random_values # assign a random value to each of the empty values
-                
-        return raw_input
+                if num_empty > 0: # if empty values detected
+                    random_values = np.random.normal(mean, std_dev, size=num_empty).astype(int) # generate a list of varying random variables
+                    random_values[random_values < 0] = 0 # only total_bedrooms has empty values, ensure values are positive whole numbers
+                    
+                    raw_input.loc[mask, label] = random_values # assign a random value to each of the empty values
+                    
+            return raw_input
 
         
     def fit(self, x, y):
