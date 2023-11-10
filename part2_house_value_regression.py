@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import sklearn
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer, StandardScaler
 
 class Regressor():
 
@@ -55,18 +55,16 @@ class Regressor():
               size (batch_size, 1).
             
         """
-        
-        """
-        
-        1. 1 hot encoding
-        2. fillna
-        3. normalise
-        
-        """
 
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        
+        """
+        1. 1 hot encoding
+        2. fillna
+        3. normalise
+        """
 
         # One Hot Encoding with LabelBinarizer
         non_float_cols = [col for col in x.columns if x[col].dtype == "object"]
@@ -82,22 +80,27 @@ class Regressor():
                     feature = "is_" + str(unique_label)
                     
                     x[feature] = encoded[:, i]
-                    
+            
+            x.drop(non_float_cols, axis = 1, inplace = True)
         
+        # Fill empty values with random variables
+        x = self.fill_empty_labels(x)
+        
+        # Standardisation
+        scaler = StandardScaler()
+        standardised_x = pd.DataFrame(scaler.fit_transform(x), columns = x.columns)
         
         # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
-        return x, (y if isinstance(y, pd.DataFrame) else None)
+        return standardised_x, (y if isinstance(y, pd.DataFrame) else None)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
     # Correct empty feature instances with a normally distributed random variable using the feature mean and standard deviation
-    def fill_empty_labels(raw_input):
+    def fill_empty_labels(self, raw_input):
             for label in raw_input.columns: # loop for all labels
-                if label == 'ocean_proximity': ######### dont have hot encoder yet!
-                    continue
                 mean = raw_input[label].mean() # label mean 
                 std_dev = raw_input[label].std() # label std dev
                 mask = raw_input[label].isnull() # find where empty values exist
@@ -263,5 +266,12 @@ def example_main():
 
 
 if __name__ == "__main__":
-    example_main()
+    
+    data = pd.read_csv("housing.csv")
+    
+    regressor = Regressor(data)
+    
+    regressor._preprocessor(data)
+    
+    
 
