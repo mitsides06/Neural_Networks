@@ -1,11 +1,11 @@
-import torch
+import torch.nn as nn
 import pickle
 import numpy as np
 import pandas as pd
 import sklearn
 from sklearn.preprocessing import LabelBinarizer, StandardScaler
 
-class Regressor():
+class Regressor(nn.Module):
 
     def __init__(self, x, nb_epoch = 1000):
         # You can add any input parameters you need
@@ -25,6 +25,11 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
+        super(Regressor, self).__init__()
+        
+        self.standardiser = StandardScaler()
+        self.lb = LabelBinarizer()
+        
         # Replace this code with your own
         X, _ = self._preprocessor(x, training = True)
         self.input_size = X.shape[1]
@@ -61,39 +66,44 @@ class Regressor():
         #######################################################################
         
         """
-        1. 1 hot encoding
-        2. fillna
-        3. normalise
+        1. fillna
+        2. standardise
+        3. one hot encode
+        4. return x, y
         """
+        
+        # Fill empty values with random variables
+        empty_filled_x = self.fill_empty_labels(x)
+        
+        # Standardisation
+        if training: # Training data fits onto the standardiser model
+            self.standardiser.fit(empty_filled_x)
+            standardised_x = pd.DataFrame(self.standardiser.transform(empty_filled_x), columns = empty_filled_x.columns)
+        else: # Testing data uses the standardiser model from training (it cannot fit onto the model)
+            standardised_x = pd.DataFrame(self.standardiser.transform(empty_filled_x), columns = empty_filled_x.columns)
+        
 
         # One Hot Encoding with LabelBinarizer
-        non_float_cols = [col for col in x.columns if x[col].dtype == "object"]
+        non_float_cols = [col for col in standardised_x.columns if standardised_x[col].dtype == "object"]
         
         if len(non_float_cols) != 0:
             for non_float_col in non_float_cols:
-                lb = LabelBinarizer()
-                lb.fit(x[non_float_col])
+                self.lb.fit(standardised_x[non_float_col])
                 
-                encoded = lb.fit_transform(x[non_float_col])
+                encoded = self.lb.fit_transform(x[non_float_col])
                 
-                for i, unique_label in enumerate(x[non_float_col].unique()):
+                for i, unique_label in enumerate(standardised_x[non_float_col].unique()):
                     feature = "is_" + str(unique_label)
                     
-                    x[feature] = encoded[:, i]
+                    standardised_x[feature] = encoded[:, i]
             
-            x.drop(non_float_cols, axis = 1, inplace = True)
-        
-        # Fill empty values with random variables
-        x = self.fill_empty_labels(x)
-        
-        # Standardisation
-        scaler = StandardScaler()
-        standardised_x = pd.DataFrame(scaler.fit_transform(x), columns = x.columns)
+            # Dropping the non_float_cols as it is replaced
+            standardised_x.drop(non_float_cols, axis = 1, inplace = True)
         
         # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
         return standardised_x, (y if isinstance(y, pd.DataFrame) else None)
-
+        
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -274,4 +284,12 @@ if __name__ == "__main__":
     regressor._preprocessor(data)
     
     
-
+    """
+    xtrain ytrain xtest ytest = train test split
+    
+    model = Regressor(xtrain)
+    model.fit(xtrain, ytrain)
+    
+    mode.predict(xtest)
+    
+    """
