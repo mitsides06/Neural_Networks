@@ -1,13 +1,18 @@
+import torch
 import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
 import pickle
 import numpy as np
 import pandas as pd
-import sklearn
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer, StandardScaler
+import math
+
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, nb_epoch = 1000):
+    def __init__(self, x, batch_size = 10, nb_epoch = 400, reports_per_epoch = 10):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -24,24 +29,51 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        
         super(Regressor, self).__init__()
-        
         self.standardiser = StandardScaler()
-        self.lb = LabelBinarizer()
+        self.lb = LabelBinarizer()   
         
-        # Replace this code with your own
         X, _ = self._preprocessor(x, training = True)
+        self.data_size = X.shape[0]
         self.input_size = X.shape[1]
         self.output_size = 1
         self.nb_epoch = nb_epoch
+        self.batch_size = batch_size 
+        self.reports_per_epoch = reports_per_epoch
+        
+        self.linear1 = nn.Linear(self.input_size, 64)
+        self.linear2 = nn.Linear(64, 64)
+        self.linear3 = nn.Linear(64, 64)
+        self.linear4 = nn.Linear(64, 64)
+        self.linear5 = nn.Linear(64, self.output_size)
+        self.activation_sigmoid = nn.Sigmoid()
+        self.ativation_relu = nn.ReLU()
+        
+        self.loss_fn = nn.MSELoss()
+        self.optimizer = optim.Adam(self.parameters(), lr=0.001)
         
         return
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-
+    
+    
+    # Forward Function
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.activation_sigmoid(x)
+        x = self.linear2(x)
+        x = self.activation_sigmoid(x)
+        x = self.linear3(x)
+        x = self.ativation_relu(x)
+        x = self.linear4(x)
+        x = self.ativation_relu(x)
+        x = self.linear5(x)
+        return x
+    
+    
     def _preprocessor(self, x, y = None, training = False):
         """ 
         Preprocess input of the network.
@@ -81,7 +113,7 @@ class Regressor(nn.Module):
         
         # Fill empty values with random variables
         empty_filled_numerica_data = self.fill_empty_labels(numerical_data)
-        
+
         # Standardisation
         if training: # Training data fits onto the standardiser model
             self.standardiser.fit(empty_filled_numerica_data)
@@ -101,6 +133,7 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
+
 
     # Correct empty feature instances with a normally distributed random variable using the feature mean and standard deviation
     def fill_empty_labels(self, raw_input):
@@ -129,6 +162,7 @@ class Regressor(nn.Module):
                 raw_input.loc[mask, label] = random_values # assign a random value to each of the empty values
                 
         return raw_input
+
 
     # One hot encode the categorical data
     def one_hot_encode(self, raw_input, non_float_cols):
@@ -162,8 +196,28 @@ class Regressor(nn.Module):
             return one_hot_encoded_data
         else:
             return None
-            
 
+
+    # Pytorch dataloader    
+    def _dataloader(self, x, y):
+        """
+        Convert the data into a dataloader (compatible with pytorch)
+
+        Args:
+            x (Pandas Dataframe): input data
+            y (Pandas Dataframe): labels
+            batch_size (int, optional): _description_. Defaults to 32.
+        
+        Returns:
+            _type_: DataLoader object
+        """
+        data_set = TensorDataset(torch.Tensor(np.array(x)), torch.Tensor(np.array(y)))
+        
+        data_loader = DataLoader(data_set, batch_size = self.batch_size, shuffle = False)
+        
+        return data_loader
+    
+    
     def fit(self, x, y):
         """
         Regressor training function
@@ -182,14 +236,84 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
+        # Preprocess the data
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
+        
+        x_train, x_val, y_train, y_val = train_test_split(X, Y, test_size = 0.2, random_state = 42)
+        
+        # Convert the data into a dataloader
+        train_loader = self._dataloader(x_train, y_train)
+        val_loader = self._dataloader(x_val, y_val)
+        
+        best_vloss = 1_000_000.
+        
+        for epoch in range(self.nb_epoch):
+            print('EPOCH {}:'.format(epoch + 1))
+            
+            self.train(True)
+            
+            avg_loss = self.train_one_epoch(epoch, train_loader)
+            
+            running_vloss = 0.0
+            
+            self.eval()
+            
+            with torch.no_grad():
+                for i, vdata in enumerate(val_loader):
+                    vinputs, vlabels = vdata
+                    voutputs = self(vinputs)
+                    vloss = self.loss_fn(voutputs, vlabels)
+                    running_vloss += vloss
+                
+            avg_vloss = running_vloss / (i + 1)
+            print('LOSS train {} valid {} valid_sqrt'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
+            
+        if avg_vloss < best_vloss:
+            best_vloss = avg_vloss
+            model_path = 'model'
+            torch.save(self.state_dict(), model_path)
+        
         return self
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-            
+    
+    def train_one_epoch(self, epoch_index, train_loader):
+        running_loss = 0.
+        last_loss = 0.
+
+        for i, data in enumerate(train_loader):
+            # Every data instance is an input + label pair
+            inputs, labels = data
+
+            # Zero your gradients for every batch!
+            self.optimizer.zero_grad()
+
+            # Make predictions for this batch
+            outputs = self(inputs)
+
+            # Compute the loss and its gradients
+            loss = self.loss_fn(outputs, labels)
+            loss.backward()
+
+            # Adjust learning weights
+            self.optimizer.step()
+
+            # Gather data and report
+            running_loss += loss.item()
+            # if i % (self.data_size)/(self.batch_size * self.reports_per_epoch) == (self.data_size)/(self.batch_size * 10) - 1:
+            #     last_loss = running_loss / (self.data_size)/(self.batch_size * self.reports_per_epoch) # loss per batch
+            #     print('  batch {} loss: {}'.format(i + 1, last_loss))
+            #     running_loss = 0.
+            if i % 100 == 99:
+                last_loss = running_loss / 100 # loss per batch
+                print('  batch {} loss: {}'.format(i + 1, last_loss))
+
+        return last_loss
+    
+      
     def predict(self, x):
         """
         Output the value corresponding to an input x.
@@ -287,7 +411,6 @@ def RegressorHyperParameterSearch():
     #######################################################################
 
 
-
 def example_main():
 
     output_label = "median_house_value"
@@ -322,17 +445,7 @@ if __name__ == "__main__":
     y_train = data.loc[:, [output_label]]
     
     regressor = Regressor(x_train)
-    a = regressor._preprocessor(x_train, y_train, training = True)
     
-    print(a[0])
+    regressor.fit(x_train, y_train)
+
     
-    
-    """
-    xtrain ytrain xtest ytest = train test split
-    
-    model = Regressor(xtrain)
-    model.fit(xtrain, ytrain)
-    
-    mode.predict(xtest)
-    
-    """
