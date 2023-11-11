@@ -102,7 +102,22 @@ class SigmoidLayer(Layer):
         """ 
         Constructor of the Sigmoid layer.
         """
-        self._cache_current = None
+        self._cache_current = None # here we save last batched input x
+
+    # I added this helper function
+    def differentiate(self, x):
+        """Differentiate Sigmoid function wrt x.
+
+            Args:
+                x (np.ndarray) : Input array of shape (batch_size, n_in)
+
+            Returns:
+                np.ndarray : Element-wise transormation of the inputs using the deriavtive of the Sigmoid function
+        """
+        exp_ = np.exp(-x)   # exp(-x)
+        sigmoid = 1 / (1 + exp_) # sigmoid function
+        derivative_of_sigmoid = sigmoid * (1 - sigmoid)
+        return derivative_of_sigmoid
 
     def forward(self, x):
         """ 
@@ -120,7 +135,12 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+
+        self._cache_current = x   # save input in attribute _cache_current
+        exp_ = np.exp(-x)  # exp(-x)
+        sigmoid = 1 / (1 + exp_)
+
+        return sigmoid
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -143,7 +163,10 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        x = self._cache_current # access input
+        sigmoid_derivative = self.differentiate(x)  # derivative of sigmoid wrt layer input
+
+        return np.multiply(grad_z, sigmoid_derivative)  #  -- (delta(loss) / delta(A)) o g'(Z) --   here A is the output of this class' forward function (activation output), in the funtion they define this as z
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -159,7 +182,21 @@ class ReluLayer(Layer):
         """
         Constructor of the Relu layer.
         """
-        self._cache_current = None
+        self._cache_current = None # here we save last batched input x
+
+    # I added this helper function
+    def differentiate(self, x):
+        """ Differentiate Relu function wrt x.
+            Args:
+                x (np.ndarray) : Input array of shape (batch_size, n_in)
+
+            Returns:
+                np.ndarray : Element-wise transormation of the inputs using the deriavtive of the Relu function
+        """
+        x[x > 0] = 1  # where entry is larger than 0, replace it with 1
+        x[x <= 0] = 0  # where entry is non-positive, replace it with 0
+
+        return x
 
     def forward(self, x):
         """ 
@@ -177,7 +214,10 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        self._cache_current = x  # save input x
+        x[x <= 0] = 0  # where entry is non-positive, replace it with 0
+
+        return x
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -200,8 +240,11 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
-
+        x = self._cache_current # access layer input
+        relu_derivative = self.differentiate(x)
+        
+        return np.multiply(grad_z, relu_derivative)    #  -- (delta(loss) / delta(A)) o g'(Z) --   here A is the output of this class' forward function (activation output), in the funtion they define this as z
+    
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -226,12 +269,12 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W = None
-        self._b = None
+        self._W = xavier_init((n_in, n_out))   # random matrix with the required dimensions
+        self._b = np.zeros((1, n_out), dtype=np.float64)  # zero matrix with the required dimensions 
 
-        self._cache_current = None
-        self._grad_W_current = None
-        self._grad_b_current = None
+        self._cache_current = None  # here we save the last batched input x
+        self._grad_W_current = None  # here we save the last partial derivative of loss wrt W update
+        self._grad_b_current = None  # here we save the last partial derivative of loss wrt b update
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -253,8 +296,11 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
 
+        Z = (x @ self._W) + self._b   # calculate Z
+        self._cache_current = x  # assign batched x to the attribute _cache_current
+
+        return Z  # output Z
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -276,8 +322,12 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        batch_size = grad_z.shape[0]  # to have easier access to the value of batch_size
+        self._grad_W_current = self._cache_current.T @ grad_z   # partial derivative of loss wrt W  -- X^T @ (delta(loss) / delta(Z)) --
+        self._grad_b_current = np.ones((1, batch_size)) @ grad_z    # partial derivative of loss wrt b -- 1^T @ (delta(loss) / delta(Z)) --
+        grad_loss_X = grad_z @ self._W.T    # partial derivative of loss wrt X -- (delta(loss) / delta(Z)) @ W^T --
 
+        return grad_loss_X
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -293,7 +343,8 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        self._W -= learning_rate * self._grad_W_current  # update W parameter
+        self._b -= learning_rate * self._grad_b_current  # update b parameter 
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -322,14 +373,42 @@ class MultiLayerNetwork(object):
         self.input_dim = input_dim
         self.neurons = neurons
         self.activations = activations
-
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._layers = None
+        self._layers = []
+        no_of_layers = len(neurons)
+
+        # Here I create the first linear-activation layer pair
+        if no_of_layers > 0:
+            first_layer = LinearLayer(input_dim, neurons[0])
+            self._layers.append(first_layer)
+            self._layers.append(self.convert_to_activation(activations[0]))   # see below the helper function
+        
+        if no_of_layers > 1:
+            for i in range(no_of_layers-1):
+                self._layers.append(LinearLayer(neurons[i], neurons[i+1]))  # appending linear layer with the required inputs
+                self._layers.append(self.convert_to_activation(activations[i+1]))  # appending activation layer using the activation list and the helper function, if activation string is not relu or sigmoid, we append None
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
+
+    # I added this helepr function
+    def convert_to_activation(self, string_):
+        """ Converts string to activation instance.
+
+            Args:
+                string_ (str) : Name of activation function
+            
+            Returns:
+                ReluLayer/SigmoidLayer/None : An activation layer instance or None depending on the input
+        """
+        if string_ == "relu":
+            return ReluLayer()
+        
+        if string_ == "sigmoid":
+            return SigmoidLayer()
+        
 
     def forward(self, x):
         """
@@ -345,7 +424,13 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        return np.zeros((1, self.neurons[-1])) # Replace with your own code
+        result = x
+        # see chapter 5 page 21 from slides
+        for i in range(2 * len(self.activations)):
+            if self._layers[i] is not None:
+                result = self._layers[i].forward(result)
+
+        return result 
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -369,8 +454,13 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        result = grad_z
+        # see chapter 5 page 21 from slides
+        for i in range(1, (2*len(self.activations))+1):
+            if self._layers[-i] is not None:
+                result = self._layers[-i].backward(result)
 
+        return result
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -386,7 +476,11 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        
+        # we update parameters only when we are in the linear layer
+        for i in range(len(self.activations)):
+            self._layers[2*i].update_params(learning_rate)
+
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -636,4 +730,11 @@ def example_main():
 
 
 if __name__ == "__main__":
-    example_main()
+    #example_main()
+    network = MultiLayerNetwork(input_dim=4, neurons=[16,16,4,4,2,2,4], activations=["relu", "relu", "identity","relu", "sigmoid", "relu", "sigmoid"])
+    inputs = np.array([[3,1,4,5], [7,3,9,0], [1,5,3,7], [6,2,8,9]])
+    outputs = network.forward(inputs)
+    
+    print(outputs)
+
+
