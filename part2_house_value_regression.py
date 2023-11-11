@@ -72,37 +72,31 @@ class Regressor(nn.Module):
         4. return x, y
         """
         
+        # Columns with categorical data in a list
+        non_float_cols = [col for col in x.columns if x[col].dtype == "object"]
+        
+        # Separate data into categorical and numerical
+        categorical_data = x[non_float_cols]
+        numerical_data = x.drop(non_float_cols, axis = 1)
+        
         # Fill empty values with random variables
-        empty_filled_x = self.fill_empty_labels(x)
+        empty_filled_numerica_data = self.fill_empty_labels(numerical_data)
         
         # Standardisation
         if training: # Training data fits onto the standardiser model
-            self.standardiser.fit(empty_filled_x)
-            standardised_x = pd.DataFrame(self.standardiser.transform(empty_filled_x), columns = empty_filled_x.columns)
+            self.standardiser.fit(empty_filled_numerica_data)
+            standardised_x = pd.DataFrame(self.standardiser.transform(empty_filled_numerica_data), columns = empty_filled_numerica_data.columns)
         else: # Testing data uses the standardiser model from training (it cannot fit onto the model)
-            standardised_x = pd.DataFrame(self.standardiser.transform(empty_filled_x), columns = empty_filled_x.columns)
+            standardised_x = pd.DataFrame(self.standardiser.transform(empty_filled_numerica_data), columns = empty_filled_numerica_data.columns)
         
-
         # One Hot Encoding with LabelBinarizer
-        non_float_cols = [col for col in standardised_x.columns if standardised_x[col].dtype == "object"]
+        one_hot_encoded_data = self.one_hot_encode(categorical_data, non_float_cols)
         
-        if len(non_float_cols) != 0:
-            for non_float_col in non_float_cols:
-                self.lb.fit(standardised_x[non_float_col])
-                
-                encoded = self.lb.fit_transform(x[non_float_col])
-                
-                for i, unique_label in enumerate(standardised_x[non_float_col].unique()):
-                    feature = "is_" + str(unique_label)
-                    
-                    standardised_x[feature] = encoded[:, i]
-            
-            # Dropping the non_float_cols as it is replaced
-            standardised_x.drop(non_float_cols, axis = 1, inplace = True)
+        # Concatenate the categorical and numerical data
+        preprocess_data = pd.concat([standardised_x, one_hot_encoded_data], axis = 1)
         
-        # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
-        return standardised_x, (y if isinstance(y, pd.DataFrame) else None)
+        return preprocess_data, (y if isinstance(y, pd.DataFrame) else None)
         
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -110,21 +104,66 @@ class Regressor(nn.Module):
 
     # Correct empty feature instances with a normally distributed random variable using the feature mean and standard deviation
     def fill_empty_labels(self, raw_input):
-            for label in raw_input.columns: # loop for all labels
-                mean = raw_input[label].mean() # label mean 
-                std_dev = raw_input[label].std() # label std dev
-                mask = raw_input[label].isnull() # find where empty values exist
-                num_empty = mask.sum()
-                
-                if num_empty > 0: # if empty values detected
-                    random_values = np.random.normal(mean, std_dev, size=num_empty).astype(int) # generate a list of varying random variables
-                    random_values[random_values < 0] = 0 # only total_bedrooms has empty values, ensure values are positive whole numbers
-                    
-                    raw_input.loc[mask, label] = random_values # assign a random value to each of the empty values
-                    
-            return raw_input
+        """
+        Fill in the empty values of the raw input with a random variable 
+        using the mean and standard deviation of the label
 
-        
+        Args:
+            raw_input (pandas dataframe): dataframe containing the raw input data
+
+        Returns:
+            _type_: all nan are filled with random variables
+        """
+        for label in raw_input.columns: # loop for all labels
+            if raw_input[label].dtype == "object": # if label is not a float, skip
+                continue
+            mean = raw_input[label].mean() # label mean 
+            std_dev = raw_input[label].std() # label std dev
+            mask = raw_input[label].isnull() # find where empty values exist
+            num_empty = mask.sum()
+            
+            if num_empty > 0: # if empty values detected
+                random_values = np.random.normal(mean, std_dev, size=num_empty).astype(int) # generate a list of varying random variables
+                random_values[random_values < 0] = 0 # only total_bedrooms has empty values, ensure values are positive whole numbers
+                
+                raw_input.loc[mask, label] = random_values # assign a random value to each of the empty values
+                
+        return raw_input
+
+    # One hot encode the categorical data
+    def one_hot_encode(self, raw_input, non_float_cols):
+        """
+        One hot encode the categorical data
+
+        Args:
+            raw_input (pandas dataframe): dataframe containing the raw input data
+            non_float_cols (list): list of all non float columns
+
+        Returns:
+            _type_: all categorical data is one hot encoded
+        """
+        if len(non_float_cols) != 0:
+            
+            encoded_dict = {}
+            
+            for non_float_col in non_float_cols:
+                self.lb.fit(raw_input[non_float_col])
+                
+                encoded = self.lb.fit_transform(raw_input[non_float_col])
+
+                for i, unique_label in enumerate(raw_input[non_float_col].unique()):
+                    feature = "is_" + str(unique_label)
+                    
+                    encoded_dict[feature] = encoded[:, i]
+            
+            # Initialise the one_hot_encoded_data dataframe
+            one_hot_encoded_data = pd.DataFrame(encoded_dict, columns=encoded_dict.keys())
+            
+            return one_hot_encoded_data
+        else:
+            return None
+            
+
     def fit(self, x, y):
         """
         Regressor training function
@@ -175,6 +214,7 @@ class Regressor(nn.Module):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+
     def score(self, x, y):
         """
         Function to evaluate the model accuracy on a validation dataset.
@@ -220,7 +260,6 @@ def load_regressor():
         trained_model = pickle.load(target)
     print("\nLoaded model in part2_model.pickle\n")
     return trained_model
-
 
 
 def RegressorHyperParameterSearch(): 
@@ -278,10 +317,14 @@ def example_main():
 if __name__ == "__main__":
     
     data = pd.read_csv("housing.csv")
+    output_label = "median_house_value"
+    x_train = data.loc[:, data.columns != output_label]
+    y_train = data.loc[:, [output_label]]
     
-    regressor = Regressor(data)
+    regressor = Regressor(x_train)
+    a = regressor._preprocessor(x_train, y_train, training = True)
     
-    regressor._preprocessor(data)
+    print(a[0])
     
     
     """
