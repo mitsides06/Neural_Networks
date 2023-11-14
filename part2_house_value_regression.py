@@ -1,19 +1,25 @@
+import pickle
+import numpy as np
+import pandas as pd
+import math
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
-import pickle
-import numpy as np
-import pandas as pd
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer, StandardScaler
-import math
+from sklearn.metrics import mean_squared_error, accuracy_score
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 class Regressor(nn.Module):
 
     def __init__(self, x, hidden_layer_sizes:list[int], batch_size = 10, learning_rate = 0.001, activation_function = "relu", optimizer = "adam", 
-                 nb_epoch = 400, reports_per_epoch = 10):
+                 nb_epoch = 1000, reports_per_epoch = 100):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -55,8 +61,11 @@ class Regressor(nn.Module):
                                     [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] 
                                     + [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
         
+        self.dropout = nn.Dropout(0.2)
+        
         self.loss_fn = nn.MSELoss()
         
+        # Optimizer
         if optimizer == "adam":
             self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         
@@ -69,6 +78,19 @@ class Regressor(nn.Module):
         else: # Default to Adam
             self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         
+        # Activation function
+        if activation_function == "Sigmoid":
+            self.activation = nn.Sigmoid()
+        
+        elif activation_function == "ReLU":
+            self.activation = nn.ReLU()
+        
+        elif activation_function == "Tanh":
+            self.activation = nn.Tanh()
+        
+        else: # Default to ReLU
+            self.activation = nn.ReLU()
+        
         return
 
         #######################################################################
@@ -78,18 +100,12 @@ class Regressor(nn.Module):
     
     # Forward Function
     def forward(self, x):
-        for layer in self.layers:
-            if self.activation_function == "Sigmoid":
-                x = nn.functional.sigmoid(layer(x))
-                
-            elif self.activation_function == "ReLU":
-                x = nn.functional.relu(layer(x))
-                
-            elif self.activation_function == "Tanh":
-                x = nn.functional.tanh(layer(x))
-            
-            else: # Default to ReLU
-                x = nn.functional.relu(layer(x))
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i != len(self.layers) - 1:
+                x = self.activation(x)
+                if i == len(self.layers) - 2:
+                    x = self.dropout(x)
         return x
     
     
@@ -260,18 +276,15 @@ class Regressor(nn.Module):
 
             # Gather data and report
             running_loss += loss.item()
-            # if i % (self.data_size)/(self.batch_size * self.reports_per_epoch) == (self.data_size)/(self.batch_size * 10) - 1:
-            #     last_loss = running_loss / (self.data_size)/(self.batch_size * self.reports_per_epoch) # loss per batch
-            #     print('  batch {} loss: {}'.format(i + 1, last_loss))
-            #     running_loss = 0.
-            if i % 100 == 99:
-                last_loss = running_loss / 100 # loss per batch
+            
+            if i % self.reports_per_epoch == self.reports_per_epoch - 1: # print every "report_per_epoch" mini-batches
+                last_loss = running_loss / self.reports_per_epoch # loss per batch
                 print('  batch {} loss: {}'.format(i + 1, last_loss))
-
+                running_loss = 0.
         return last_loss
     
     
-    def fit(self, x, y):
+    def fit(self, x, y, plot=False):
         """
         Regressor training function
 
@@ -298,7 +311,13 @@ class Regressor(nn.Module):
         train_loader = self._dataloader(x_train, y_train)
         val_loader = self._dataloader(x_val, y_val)
         
-        best_vloss = 1_000_000.
+        rmse_avg_loss_list = []
+        rmse_avg_vloss_list = []
+        
+        # Parameters for Early Stopping
+        last_loss = 1_000_000_000_000_000.
+        patience = 5
+        trigger = 0
         
         for epoch in range(self.nb_epoch):
             print('EPOCH {}:'.format(epoch + 1))
@@ -319,12 +338,38 @@ class Regressor(nn.Module):
                     running_vloss += vloss
                 
             avg_vloss = running_vloss / (i + 1)
-            print('LOSS train {} valid {} valid_sqrt {}'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
+            print('LOSS train: {}, validation MSE: {}, Validation RMSE: {}'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
             
-        if avg_vloss < best_vloss:
-            best_vloss = avg_vloss
-            model_path = 'model'
-            torch.save(self.state_dict(), model_path)
+            rmse_avg_loss_list.append(math.sqrt(avg_loss))
+            rmse_avg_vloss_list.append(math.sqrt(avg_vloss))
+            
+            # Early stopping
+            if avg_vloss > last_loss:
+                trigger += 1
+                
+                if trigger >= patience:
+                    print("Early stopping")
+                    break
+            
+            last_loss = avg_vloss
+            
+            # if avg_vloss < best_vloss:
+            #     best_vloss = avg_vloss
+            #     model_path = 'model'
+            #     torch.save(self.state_dict(), model_path)
+        
+        # Plot
+        plt.figure(figsize=(5, 5))
+        sns.set_theme(style="darkgrid")
+        sns.lineplot(rmse_avg_loss_list, label="Training RMSE")
+        sns.lineplot(rmse_avg_vloss_list, label = "Validation RMSE")
+        plt.legend()
+        plt.xlabel("Epoch")
+        plt.ylabel("RMSE")
+        plt.title("RMSE vs Epoch")
+        
+        if plot:
+            plt.show()
         
         return self
 
@@ -350,8 +395,10 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        X, _ = self._preprocessor(x, training = False) # Do not forget
-        pass
+        with torch.no_grad():
+            X, _ = self._preprocessor(x, training = False) # Do not forget
+            
+            return self(torch.tensor(X.values).float()) # Pass the pandas dataframe converted to a tensor to the model
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -376,8 +423,10 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
-        return 0 # Replace this code with your own
+        with torch.no_grad():
+            X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
+        
+            return mean_squared_error(np.array(Y), np.array(self(torch.tensor(X.values).float())), squared = False)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -423,6 +472,8 @@ def RegressorHyperParameterSearch():
     #                       ** START OF YOUR CODE **
     #######################################################################
 
+    # TODO: Implement a hyper-parameter search to find good hyperparameters
+    
     return  # Return the chosen hyper parameters
 
     #######################################################################
@@ -456,15 +507,25 @@ def example_main():
     print("\nRegressor error: {}\n".format(error))
 
 
-if __name__ == "__main__":
-    
+def main():
     data = pd.read_csv("housing.csv")
     output_label = "median_house_value"
-    x_train = data.loc[:, data.columns != output_label]
-    y_train = data.loc[:, [output_label]]
     
-    regressor = Regressor(x_train, [13,12])
+    x = data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
     
-    regressor.fit(x_train, y_train)
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 42)
+    
+    regressor = Regressor(X_train, hidden_layer_sizes=[64,64,64,64], batch_size = 10, learning_rate = 0.001, 
+                          activation_function = "ReLU", optimizer = "adam", nb_epoch = 20)
+    
+    regressor.fit(X_train, y_train, plot=True)
+    
+    RMSE = regressor.score(X_test, y_test)
+    
+    print("Testing Score (RMSE): ", RMSE)
 
+if __name__ == "__main__":
+
+    main()
     
