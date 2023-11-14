@@ -325,7 +325,7 @@ class Regressor():
         trigger = 0
         
         for epoch in range(self.nb_epoch):
-            print('EPOCH {}:'.format(epoch + 1))
+            # print('EPOCH {}:'.format(epoch + 1))
             
             self.model.train(True)
             
@@ -363,18 +363,18 @@ class Regressor():
             #     model_path = 'model'
             #     torch.save(self.state_dict(), model_path)
         
-        # Plot
-        plt.figure(figsize=(5, 5))
-        sns.set_theme(style="darkgrid")
-        sns.lineplot(rmse_avg_loss_list, label="Training RMSE")
-        sns.lineplot(rmse_avg_vloss_list, label = "Validation RMSE")
-        plt.legend()
-        plt.xlabel("Epoch")
-        plt.ylabel("RMSE")
-        plt.title("RMSE vs Epoch")
+        # # Plot
+        # plt.figure(figsize=(5, 5))
+        # sns.set_theme(style="darkgrid")
+        # sns.lineplot(rmse_avg_loss_list, label="Training RMSE")
+        # sns.lineplot(rmse_avg_vloss_list, label = "Validation RMSE")
+        # plt.legend()
+        # plt.xlabel("Epoch")
+        # plt.ylabel("RMSE")
+        # plt.title("RMSE vs Epoch")
         
-        if plot:
-            plt.show()
+        # if plot:
+        #     plt.show()
         
         return self
 
