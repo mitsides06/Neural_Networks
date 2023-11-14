@@ -16,7 +16,42 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-class Regressor(nn.Module):
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function, dropout_nb):
+        super(NeuralNetwork, self).__init__()
+        
+        self.input_size = input_size
+        self.output_size = output_size
+        
+        self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] +
+                                    [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] +
+                                    [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
+        
+        self.activation_function = activation_function
+        
+        if activation_function == "Sigmoid":
+            self.activation = nn.Sigmoid()
+        elif activation_function == "ReLU":
+            self.activation = nn.ReLU()
+        elif activation_function == "Tanh":
+            self.activation = nn.Tanh()
+        else:
+            self.activation = nn.ReLU()
+            
+        self.dropout = nn.Dropout(dropout_nb)
+        
+    # Forward Function
+    def forward(self, x):
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i != len(self.layers) - 1:
+                x = self.activation(x)
+                if i == len(self.layers) - 2:
+                    x = self.dropout(x)
+        return x
+            
+
+class Regressor():
 
     def __init__(self, x, hidden_layer_sizes:list[int], batch_size = 10, learning_rate = 0.001, activation_function = "relu", optimizer = "adam", 
                  nb_epoch = 1000, reports_per_epoch = 100):
@@ -43,7 +78,7 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
         
-        super(Regressor, self).__init__()
+        
         self.standardiser = StandardScaler()
         self.lb = LabelBinarizer()   
         
@@ -55,41 +90,43 @@ class Regressor(nn.Module):
         self.batch_size = batch_size 
         self.reports_per_epoch = reports_per_epoch
         
-        self.activation_function = activation_function
+        self.model = NeuralNetwork(self.input_size, self.output_size, hidden_layer_sizes, activation_function, dropout_nb = 0.2)
         
-        self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] + 
-                                    [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] 
-                                    + [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
+        # self.activation_function = activation_function
         
-        self.dropout = nn.Dropout(0.2)
+        # self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] + 
+        #                             [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] 
+        #                             + [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
+        
+        # self.dropout = nn.Dropout(0.2)
         
         self.loss_fn = nn.MSELoss()
         
         # Optimizer
         if optimizer == "adam":
-            self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+            self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         
         elif optimizer == "sgd":
-            self.optimizer = optim.SGD(self.parameters(), lr=learning_rate)
+            self.optimizer = optim.SGD(self.model.parameters(), lr=learning_rate)
             
         elif optimizer == "rmsprop":
-            self.optimizer = optim.RMSprop(self.parameters(), lr=learning_rate)
+            self.optimizer = optim.RMSprop(self.model.parameters(), lr=learning_rate)
         
         else: # Default to Adam
-            self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+            self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         
-        # Activation function
-        if activation_function == "Sigmoid":
-            self.activation = nn.Sigmoid()
+        # # Activation function
+        # if activation_function == "Sigmoid":
+        #     self.activation = nn.Sigmoid()
         
-        elif activation_function == "ReLU":
-            self.activation = nn.ReLU()
+        # elif activation_function == "ReLU":
+        #     self.activation = nn.ReLU()
         
-        elif activation_function == "Tanh":
-            self.activation = nn.Tanh()
+        # elif activation_function == "Tanh":
+        #     self.activation = nn.Tanh()
         
-        else: # Default to ReLU
-            self.activation = nn.ReLU()
+        # else: # Default to ReLU
+        #     self.activation = nn.ReLU()
         
         return
 
@@ -98,15 +135,15 @@ class Regressor(nn.Module):
         #######################################################################
     
     
-    # Forward Function
-    def forward(self, x):
-        for i, layer in enumerate(self.layers):
-            x = layer(x)
-            if i != len(self.layers) - 1:
-                x = self.activation(x)
-                if i == len(self.layers) - 2:
-                    x = self.dropout(x)
-        return x
+    # # Forward Function
+    # def forward(self, x):
+    #     for i, layer in enumerate(self.layers):
+    #         x = layer(x)
+    #         if i != len(self.layers) - 1:
+    #             x = self.activation(x)
+    #             if i == len(self.layers) - 2:
+    #                 x = self.dropout(x)
+    #     return x
     
     
     def _preprocessor(self, x, y = None, training = False):
@@ -265,7 +302,7 @@ class Regressor(nn.Module):
             self.optimizer.zero_grad()
 
             # Make predictions for this batch
-            outputs = self(inputs)
+            outputs = self.model(inputs)
 
             # Compute the loss and its gradients
             loss = self.loss_fn(outputs, labels)
@@ -322,18 +359,18 @@ class Regressor(nn.Module):
         for epoch in range(self.nb_epoch):
             print('EPOCH {}:'.format(epoch + 1))
             
-            self.train(True)
+            self.model.train(True)
             
             avg_loss = self.train_one_epoch(epoch, train_loader)
             
             running_vloss = 0.0
             
-            self.eval()
+            self.model.eval()
             
             with torch.no_grad():
                 for i, vdata in enumerate(val_loader):
                     vinputs, vlabels = vdata
-                    voutputs = self(vinputs)
+                    voutputs = self.model(vinputs)
                     vloss = self.loss_fn(voutputs, vlabels)
                     running_vloss += vloss
                 
@@ -398,7 +435,7 @@ class Regressor(nn.Module):
         with torch.no_grad():
             X, _ = self._preprocessor(x, training = False) # Do not forget
             
-            return self(torch.tensor(X.values).float()) # Pass the pandas dataframe converted to a tensor to the model
+            return self.model(torch.tensor(X.values).float()) # Pass the pandas dataframe converted to a tensor to the model
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -426,7 +463,7 @@ class Regressor(nn.Module):
         with torch.no_grad():
             X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
         
-            return mean_squared_error(np.array(Y), np.array(self(torch.tensor(X.values).float())), squared = False)
+            return mean_squared_error(np.array(Y), np.array(self.model(torch.tensor(X.values).float())), squared = False)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
