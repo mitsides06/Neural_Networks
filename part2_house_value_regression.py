@@ -42,13 +42,16 @@ class Regressor(nn.Module):
         self.batch_size = batch_size 
         self.reports_per_epoch = reports_per_epoch
         
-        self.linear1 = nn.Linear(self.input_size, 64)
+        self.input_layer = nn.Linear(self.input_size, 64)
+        self.linear1 = nn.Linear(64, 64)
         self.linear2 = nn.Linear(64, 64)
         self.linear3 = nn.Linear(64, 64)
         self.linear4 = nn.Linear(64, 64)
-        self.linear5 = nn.Linear(64, self.output_size)
+        self.linear5 = nn.Linear(64, 64)
+        self.output_layer = nn.Linear(64, self.output_size)
         self.activation_sigmoid = nn.Sigmoid()
         self.ativation_relu = nn.ReLU()
+        self.activation_tanh = nn.Tanh()
         
         self.loss_fn = nn.MSELoss()
         self.optimizer = optim.Adam(self.parameters(), lr=0.001)
@@ -62,15 +65,17 @@ class Regressor(nn.Module):
     
     # Forward Function
     def forward(self, x):
-        x = self.linear1(x)
-        x = self.activation_sigmoid(x)
+        x = self.input_layer(x)
+        x = self.ativation_relu(x)
         x = self.linear2(x)
-        x = self.activation_sigmoid(x)
+        x = self.ativation_relu(x)
         x = self.linear3(x)
         x = self.ativation_relu(x)
         x = self.linear4(x)
         x = self.ativation_relu(x)
         x = self.linear5(x)
+        x = self.ativation_relu(x)
+        x = self.output_layer(x)
         return x
     
     
@@ -266,7 +271,7 @@ class Regressor(nn.Module):
                     running_vloss += vloss
                 
             avg_vloss = running_vloss / (i + 1)
-            print('LOSS train {} valid {} valid_sqrt'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
+            print('LOSS train {} valid {} valid_sqrt {}'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
             
         if avg_vloss < best_vloss:
             best_vloss = avg_vloss
