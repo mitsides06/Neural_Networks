@@ -12,7 +12,8 @@ import math
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, batch_size = 10, nb_epoch = 400, reports_per_epoch = 10):
+    def __init__(self, x, hidden_layer_sizes:list[int], batch_size = 10, learning_rate = 0.001, activation_function = "relu", optimizer = "adam", 
+                 nb_epoch = 400, reports_per_epoch = 10):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -22,7 +23,13 @@ class Regressor(nn.Module):
             - x {pd.DataFrame} -- Raw input data of shape 
                 (batch_size, input_size), used to compute the size 
                 of the network.
+            - hidden_layer_sizes {list[int]} -- A list of layer sizes.
+            - batch_size {int} -- Size of the batch used for training.
+            - learning_rate {float} -- Optimizer learning rate.
+            - activation_function {str} -- Activation function to use for each layer.
+            - optimizer {str} -- Optimizer to use for training.
             - nb_epoch {int} -- number of epochs to train the network.
+            - reports_per_epoch {int} -- Number of training steps to use per epoch for reporting purposes.
 
         """
 
@@ -42,19 +49,25 @@ class Regressor(nn.Module):
         self.batch_size = batch_size 
         self.reports_per_epoch = reports_per_epoch
         
-        self.input_layer = nn.Linear(self.input_size, 64)
-        self.linear1 = nn.Linear(64, 64)
-        self.linear2 = nn.Linear(64, 64)
-        self.linear3 = nn.Linear(64, 64)
-        self.linear4 = nn.Linear(64, 64)
-        self.linear5 = nn.Linear(64, 64)
-        self.output_layer = nn.Linear(64, self.output_size)
-        self.activation_sigmoid = nn.Sigmoid()
-        self.ativation_relu = nn.ReLU()
-        self.activation_tanh = nn.Tanh()
+        self.activation_function = activation_function
+        
+        self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] + 
+                                    [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] 
+                                    + [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
         
         self.loss_fn = nn.MSELoss()
-        self.optimizer = optim.Adam(self.parameters(), lr=0.001)
+        
+        if optimizer == "adam":
+            self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        
+        elif optimizer == "sgd":
+            self.optimizer = optim.SGD(self.parameters(), lr=learning_rate)
+            
+        elif optimizer == "rmsprop":
+            self.optimizer = optim.RMSprop(self.parameters(), lr=learning_rate)
+        
+        else: # Default to Adam
+            self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         
         return
 
@@ -65,17 +78,18 @@ class Regressor(nn.Module):
     
     # Forward Function
     def forward(self, x):
-        x = self.input_layer(x)
-        x = self.ativation_relu(x)
-        x = self.linear2(x)
-        x = self.ativation_relu(x)
-        x = self.linear3(x)
-        x = self.ativation_relu(x)
-        x = self.linear4(x)
-        x = self.ativation_relu(x)
-        x = self.linear5(x)
-        x = self.ativation_relu(x)
-        x = self.output_layer(x)
+        for layer in self.layers:
+            if self.activation_function == "Sigmoid":
+                x = nn.functional.sigmoid(layer(x))
+                
+            elif self.activation_function == "ReLU":
+                x = nn.functional.relu(layer(x))
+                
+            elif self.activation_function == "Tanh":
+                x = nn.functional.tanh(layer(x))
+            
+            else: # Default to ReLU
+                x = nn.functional.relu(layer(x))
         return x
     
     
@@ -223,6 +237,40 @@ class Regressor(nn.Module):
         return data_loader
     
     
+    def train_one_epoch(self, epoch_index, train_loader):
+        running_loss = 0.
+        last_loss = 0.
+
+        for i, data in enumerate(train_loader):
+            # Every data instance is an input + label pair
+            inputs, labels = data
+
+            # Zero your gradients for every batch!
+            self.optimizer.zero_grad()
+
+            # Make predictions for this batch
+            outputs = self(inputs)
+
+            # Compute the loss and its gradients
+            loss = self.loss_fn(outputs, labels)
+            loss.backward()
+
+            # Adjust learning weights
+            self.optimizer.step()
+
+            # Gather data and report
+            running_loss += loss.item()
+            # if i % (self.data_size)/(self.batch_size * self.reports_per_epoch) == (self.data_size)/(self.batch_size * 10) - 1:
+            #     last_loss = running_loss / (self.data_size)/(self.batch_size * self.reports_per_epoch) # loss per batch
+            #     print('  batch {} loss: {}'.format(i + 1, last_loss))
+            #     running_loss = 0.
+            if i % 100 == 99:
+                last_loss = running_loss / 100 # loss per batch
+                print('  batch {} loss: {}'.format(i + 1, last_loss))
+
+        return last_loss
+    
+    
     def fit(self, x, y):
         """
         Regressor training function
@@ -283,40 +331,6 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-
-    
-    def train_one_epoch(self, epoch_index, train_loader):
-        running_loss = 0.
-        last_loss = 0.
-
-        for i, data in enumerate(train_loader):
-            # Every data instance is an input + label pair
-            inputs, labels = data
-
-            # Zero your gradients for every batch!
-            self.optimizer.zero_grad()
-
-            # Make predictions for this batch
-            outputs = self(inputs)
-
-            # Compute the loss and its gradients
-            loss = self.loss_fn(outputs, labels)
-            loss.backward()
-
-            # Adjust learning weights
-            self.optimizer.step()
-
-            # Gather data and report
-            running_loss += loss.item()
-            # if i % (self.data_size)/(self.batch_size * self.reports_per_epoch) == (self.data_size)/(self.batch_size * 10) - 1:
-            #     last_loss = running_loss / (self.data_size)/(self.batch_size * self.reports_per_epoch) # loss per batch
-            #     print('  batch {} loss: {}'.format(i + 1, last_loss))
-            #     running_loss = 0.
-            if i % 100 == 99:
-                last_loss = running_loss / 100 # loss per batch
-                print('  batch {} loss: {}'.format(i + 1, last_loss))
-
-        return last_loss
     
       
     def predict(self, x):
@@ -449,7 +463,7 @@ if __name__ == "__main__":
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
     
-    regressor = Regressor(x_train)
+    regressor = Regressor(x_train, [13,12])
     
     regressor.fit(x_train, y_train)
 
