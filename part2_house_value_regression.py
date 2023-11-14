@@ -200,7 +200,7 @@ class Regressor():
         preprocess_data = pd.concat([standardised_x, one_hot_encoded_data], axis = 1)
         
         # Return preprocessed x and y, return None for y if it was None
-        return preprocess_data, (y if isinstance(y, pd.DataFrame) else None)
+        return torch.tensor(preprocess_data.values).float(), (torch.tensor(y.values).float() if isinstance(y, pd.DataFrame) else None)
         
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -435,7 +435,7 @@ class Regressor():
         with torch.no_grad():
             X, _ = self._preprocessor(x, training = False) # Do not forget
             
-            return self.model(torch.tensor(X.values).float()) # Pass the pandas dataframe converted to a tensor to the model
+            return np.ndarray(self.model(torch.tensor(X.values).float())) # Pass the pandas dataframe converted to a tensor to the model
 
         #######################################################################
         #                       ** END OF YOUR CODE **
