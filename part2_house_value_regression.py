@@ -92,14 +92,6 @@ class Regressor():
         
         self.model = NeuralNetwork(self.input_size, self.output_size, hidden_layer_sizes, activation_function, dropout_nb = dropout)
         
-        # self.activation_function = activation_function
-        
-        # self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] + 
-        #                             [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] 
-        #                             + [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
-        
-        # self.dropout = nn.Dropout(0.2)
-        
         self.loss_fn = nn.MSELoss()
         
         # Optimizer
@@ -115,35 +107,11 @@ class Regressor():
         else: # Default to Adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         
-        # # Activation function
-        # if activation_function == "Sigmoid":
-        #     self.activation = nn.Sigmoid()
-        
-        # elif activation_function == "ReLU":
-        #     self.activation = nn.ReLU()
-        
-        # elif activation_function == "Tanh":
-        #     self.activation = nn.Tanh()
-        
-        # else: # Default to ReLU
-        #     self.activation = nn.ReLU()
-        
         return
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-    
-    
-    # # Forward Function
-    # def forward(self, x):
-    #     for i, layer in enumerate(self.layers):
-    #         x = layer(x)
-    #         if i != len(self.layers) - 1:
-    #             x = self.activation(x)
-    #             if i == len(self.layers) - 2:
-    #                 x = self.dropout(x)
-    #     return x
     
     
     def _preprocessor(self, x, y = None, training = False):
@@ -375,7 +343,7 @@ class Regressor():
                     running_vloss += vloss
                 
             avg_vloss = running_vloss / (i + 1)
-            print('LOSS train: {}, validation MSE: {}, Validation RMSE: {}'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
+            # print('LOSS train: {}, validation MSE: {}, Validation RMSE: {}'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
             
             rmse_avg_loss_list.append(math.sqrt(avg_loss))
             rmse_avg_vloss_list.append(math.sqrt(avg_vloss))
@@ -556,7 +524,7 @@ def main():
     regressor = Regressor(X_train, hidden_layer_sizes=[64,64,64,64], batch_size = 10, learning_rate = 0.001, 
                           activation_function = "ReLU", optimizer = "adam", nb_epoch = 20)
     
-    regressor.fit(X_train, y_train, plot=True)
+    regressor.fit(X_train, y_train, plot=False)
     
     RMSE = regressor.score(X_test, y_test)
     
