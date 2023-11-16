@@ -116,7 +116,8 @@ class Regressor():
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-    
+
+        return
     
     def _preprocessor(self, x, y = None, training = False):
         """ 
@@ -373,7 +374,8 @@ class Regressor():
         # if plot:
         #     plt.show()
         
-        return self
+        print(self)
+        return self.model
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -527,9 +529,15 @@ def main():
     
     RMSE = regressor.score(X_test, y_test)
     
+    save_regressor(regressor)
+    
     print("Testing Score (RMSE): ", RMSE)
 
 if __name__ == "__main__":
 
     main()
+    
+    trained_model = load_regressor()
+    
+    print(trained_model)
     
