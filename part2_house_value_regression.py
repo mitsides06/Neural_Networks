@@ -14,7 +14,42 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-   
+
+torch.set_default_dtype(torch.float64)
+
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function, dropout_nb):
+        super().__init__()
+        
+        self.input_size = input_size
+        self.output_size = output_size
+        
+        self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] +
+                                    [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] +
+                                    [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
+        
+        self.activation_function = activation_function
+        
+        if activation_function == "Sigmoid":
+            self.activation = nn.Sigmoid()
+        elif activation_function == "ReLU":
+            self.activation = nn.ReLU()
+        elif activation_function == "Tanh":
+            self.activation = nn.Tanh()
+        else:
+            self.activation = nn.ReLU()
+            
+        self.dropout = nn.Dropout(dropout_nb)
+        
+    # Forward Function
+    def forward(self, x):
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i != len(self.layers) - 1:
+                x = self.activation(x)
+                if i == len(self.layers) - 2:
+                    x = self.dropout(x)
+        return x
 
 class Regressor():
 
@@ -59,7 +94,7 @@ class Regressor():
         self.hidden_layer_sizes = hidden_layer_sizes
         self.activation_function = activation_function
         self.dropout = dropout
-        self.model = self.NeuralNetwork(input_size=self.input_size, output_size=self.output_size, 
+        self.model = NeuralNetwork(input_size=self.input_size, output_size=self.output_size, 
                                    hidden_layer_sizes=self.hidden_layer_sizes,
                                    activation_function=self.activation_function, dropout_nb=self.dropout)
         
@@ -130,7 +165,7 @@ class Regressor():
         preprocess_data = pd.concat([standardised_x, one_hot_encoded_data], axis = 1)
         
         # Return preprocessed x and y, return None for y if it was None
-        return torch.tensor(preprocess_data.values).float(), (torch.tensor(y.values).float() if isinstance(y, pd.DataFrame) else None)
+        return torch.tensor(preprocess_data.values), (torch.tensor(y.values) if isinstance(y, pd.DataFrame) else None)
         
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -401,76 +436,6 @@ class Regressor():
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    class NeuralNetwork(nn.Module):
-        def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function, dropout_nb):
-            super().__init__()
-            
-            self.input_size = input_size
-            self.output_size = output_size
-            
-            self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] +
-                                        [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] +
-                                        [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
-            
-            self.activation_function = activation_function
-            
-            if activation_function == "Sigmoid":
-                self.activation = nn.Sigmoid()
-            elif activation_function == "ReLU":
-                self.activation = nn.ReLU()
-            elif activation_function == "Tanh":
-                self.activation = nn.Tanh()
-            else:
-                self.activation = nn.ReLU()
-                
-            self.dropout = nn.Dropout(dropout_nb)
-            
-        # Forward Function
-        def forward(self, x):
-            for i, layer in enumerate(self.layers):
-                x = layer(x)
-                if i != len(self.layers) - 1:
-                    x = self.activation(x)
-                    if i == len(self.layers) - 2:
-                        x = self.dropout(x)
-            return x
-            
-
-# class NeuralNetwork(nn.Module):
-#     def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function, dropout_nb):
-#         super(NeuralNetwork, self).__init__()
-        
-#         self.input_size = input_size
-#         self.output_size = output_size
-        
-#         self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] +
-#                                     [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] +
-#                                     [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
-        
-#         self.activation_function = activation_function
-        
-#         if activation_function == "Sigmoid":
-#             self.activation = nn.Sigmoid()
-#         elif activation_function == "ReLU":
-#             self.activation = nn.ReLU()
-#         elif activation_function == "Tanh":
-#             self.activation = nn.Tanh()
-#         else:
-#             self.activation = nn.ReLU()
-            
-#         self.dropout = nn.Dropout(dropout_nb)
-        
-#     # Forward Function
-#     def forward(self, x):
-#         for i, layer in enumerate(self.layers):
-#             x = layer(x)
-#             if i != len(self.layers) - 1:
-#                 x = self.activation(x)
-#                 if i == len(self.layers) - 2:
-#                     x = self.dropout(x)
-#         return x
-            
-
 
 def save_regressor(trained_model): 
     """ 
@@ -566,5 +531,5 @@ def main():
 
 if __name__ == "__main__":
 
-    example_main()
+    main()
     
