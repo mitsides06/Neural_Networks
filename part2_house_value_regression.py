@@ -540,7 +540,7 @@ def example_main():
     # to make sure the model isn't overfitting
     regressor = Regressor(x_train, nb_epoch = 1)
     regressor.fit(x_train, y_train)
-    save_regressor(regressor)
+    save_regressor(regressor.model)
 
     # Error
     error = regressor.score(x_train, y_train)
