@@ -494,7 +494,7 @@ class MultiLayerNetwork(object):
         grad_result = grad_z
 
         # Sequentially apply backward pass of each layer in reverse order
-        for layer in self._layers[::-1]:
+        for layer in reversed(self._layers):
             grad_result = layer.backward(grad_result)
 
         # Return the final gradient after all layers have been applied
