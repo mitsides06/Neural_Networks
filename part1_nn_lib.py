@@ -586,8 +586,8 @@ class Trainer(object):
         elif loss_fun_name == "cross_entropy":
             self._loss_layer = CrossEntropyLossLayer()
         else:
-            self._loss_layer = None
-            # raise ValueError(f"Unrecognised loss function: {self.loss_fun}")
+            # self._loss_layer = None
+            raise ValueError(f"Unrecognised loss function: {self.loss_fun}")
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
