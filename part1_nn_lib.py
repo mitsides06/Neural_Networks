@@ -576,13 +576,17 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # Convert the string to lowercase to handle different cases
+        loss_fun_name = self.loss_fun.lower()
+
         # Initialise the loss layer based on the specified loss function
-        if self.loss_fun == "mse":
+        if loss_fun_name == "mse":
             self._loss_layer = MSELossLayer()
-        elif self.loss_fun == "cross_entropy":
+        elif loss_fun_name == "cross_entropy":
             self._loss_layer = CrossEntropyLossLayer()
         else:
-            raise ValueError(f"Unrecognised loss function: {self.loss_fun}")
+            self._loss_layer = None
+            # raise ValueError(f"Unrecognised loss function: {self.loss_fun}")
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -611,12 +615,8 @@ class Trainer(object):
         if target_dataset.ndim == 1:
             target_dataset = np.reshape(target_dataset, (-1, 1))
 
-        # Initialise a new random number generator (rng) with a fixed seed
-        seed = 12345
-        rng = np.random.default_rng(seed)
-
         # Generate a random permutation of indices for the dataset
-        randomised_indices = rng.permutation(input_dataset.shape[0])
+        randomised_indices = np.random.permutation(len(input_dataset))
 
         # Shuffle both datasets using the same random indices
         # This maintains alignment between each input and corresponding target
@@ -827,7 +827,7 @@ def example_main():
 
 
 if __name__ == "__main__":
-    #example_main()
+    example_main()
     network = MultiLayerNetwork(input_dim=4, neurons=[16,16,4,4,2,2,4],
                                 activations=["relu", "relu", "identity",
                                              "relu","sigmoid", "relu",
