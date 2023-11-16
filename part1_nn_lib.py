@@ -438,10 +438,11 @@ class MultiLayerNetwork(object):
             return ReluLayer()
         elif activation_name == "sigmoid":
             return SigmoidLayer()
-        elif activation_name == "identity":
-            return None
+        # elif activation_name == "identity":
+        #     return None
         else:
-            raise ValueError(f"Unrecognised activation function: {string_}")
+            return None
+            # raise ValueError(f"Unrecognised activation function: {string_}")
 
     def forward(self, x):
         """
@@ -493,7 +494,7 @@ class MultiLayerNetwork(object):
         grad_result = grad_z
 
         # Sequentially apply backward pass of each layer in reverse order
-        for layer in reversed(self._layers):
+        for layer in self._layers[::-1]:
             grad_result = layer.backward(grad_result)
 
         # Return the final gradient after all layers have been applied
@@ -612,8 +613,8 @@ class Trainer(object):
         # Ensure both input_dataset & target_dataset are two-dimensional arrays
         if input_dataset.ndim == 1:
             input_dataset = np.reshape(input_dataset, (-1, 1))
-        if target_dataset.ndim == 1:
-            target_dataset = np.reshape(target_dataset, (-1, 1))
+        # if target_dataset.ndim == 1:
+        #     target_dataset = np.reshape(target_dataset, (-1, 1))
 
         # Generate a random permutation of indices for the dataset
         randomised_indices = np.random.permutation(len(input_dataset))
