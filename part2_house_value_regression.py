@@ -345,13 +345,13 @@ class Regressor():
             rmse_avg_loss_list.append(math.sqrt(avg_loss))
             rmse_avg_vloss_list.append(math.sqrt(avg_vloss))
             
-            # Early stopping
-            if avg_vloss > last_loss:
-                trigger += 1
+            # # Early stopping
+            # if avg_vloss > last_loss:
+            #     trigger += 1
                 
-                if trigger >= patience:
-                    print("Early stopping")
-                    break
+            #     if trigger >= patience:
+            #         print("Early stopping")
+            #         break
             
             last_loss = avg_vloss
             
