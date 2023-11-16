@@ -613,8 +613,8 @@ class Trainer(object):
         # Ensure both input_dataset & target_dataset are two-dimensional arrays
         if input_dataset.ndim == 1:
             input_dataset = np.reshape(input_dataset, (-1, 1))
-        # if target_dataset.ndim == 1:
-        #     target_dataset = np.reshape(target_dataset, (-1, 1))
+        if target_dataset.ndim == 1:
+            target_dataset = np.reshape(target_dataset, (-1, 1))
 
         # Generate a random permutation of indices for the dataset
         randomised_indices = np.random.permutation(len(input_dataset))
