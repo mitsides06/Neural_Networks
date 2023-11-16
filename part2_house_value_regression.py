@@ -59,7 +59,7 @@ class Regressor():
         self.hidden_layer_sizes = hidden_layer_sizes
         self.activation_function = activation_function
         self.dropout = dropout
-        self.model = NeuralNetwork(input_size=self.input_size, output_size=self.output_size, 
+        self.model = self.NeuralNetwork(input_size=self.input_size, output_size=self.output_size, 
                                    hidden_layer_sizes=self.hidden_layer_sizes,
                                    activation_function=self.activation_function, dropout_nb=self.dropout)
         
