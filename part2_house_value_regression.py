@@ -14,42 +14,7 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-
-class NeuralNetwork(nn.Module):
-    def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function, dropout_nb):
-        super(NeuralNetwork, self).__init__()
-        
-        self.input_size = input_size
-        self.output_size = output_size
-        
-        self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] +
-                                    [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] +
-                                    [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
-        
-        self.activation_function = activation_function
-        
-        if activation_function == "Sigmoid":
-            self.activation = nn.Sigmoid()
-        elif activation_function == "ReLU":
-            self.activation = nn.ReLU()
-        elif activation_function == "Tanh":
-            self.activation = nn.Tanh()
-        else:
-            self.activation = nn.ReLU()
-            
-        self.dropout = nn.Dropout(dropout_nb)
-        
-    # Forward Function
-    def forward(self, x):
-        for i, layer in enumerate(self.layers):
-            x = layer(x)
-            if i != len(self.layers) - 1:
-                x = self.activation(x)
-                if i == len(self.layers) - 2:
-                    x = self.dropout(x)
-        return x
-            
+   
 
 class Regressor():
 
@@ -94,7 +59,9 @@ class Regressor():
         self.hidden_layer_sizes = hidden_layer_sizes
         self.activation_function = activation_function
         self.dropout = dropout
-        self.model = NeuralNetwork(self.input_size, self.output_size, self.hidden_layer_sizes, self.activation_function, dropout_nb = self.dropout)
+        self.model = NeuralNetwork(input_size=self.input_size, output_size=self.output_size, 
+                                   hidden_layer_sizes=self.hidden_layer_sizes,
+                                   activation_function=self.activation_function, dropout_nb=self.dropout)
         
         self.loss_fn = nn.MSELoss()
         
@@ -138,13 +105,6 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        
-        """
-        1. fillna
-        2. standardise
-        3. one hot encode
-        4. return x, y
-        """
         
         # Columns with categorical data in a list
         non_float_cols = [col for col in x.columns if x[col].dtype == "object"]
@@ -441,6 +401,76 @@ class Regressor():
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+    class NeuralNetwork(nn.Module):
+        def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function, dropout_nb):
+            super().__init__()
+            
+            self.input_size = input_size
+            self.output_size = output_size
+            
+            self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] +
+                                        [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] +
+                                        [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
+            
+            self.activation_function = activation_function
+            
+            if activation_function == "Sigmoid":
+                self.activation = nn.Sigmoid()
+            elif activation_function == "ReLU":
+                self.activation = nn.ReLU()
+            elif activation_function == "Tanh":
+                self.activation = nn.Tanh()
+            else:
+                self.activation = nn.ReLU()
+                
+            self.dropout = nn.Dropout(dropout_nb)
+            
+        # Forward Function
+        def forward(self, x):
+            for i, layer in enumerate(self.layers):
+                x = layer(x)
+                if i != len(self.layers) - 1:
+                    x = self.activation(x)
+                    if i == len(self.layers) - 2:
+                        x = self.dropout(x)
+            return x
+            
+
+# class NeuralNetwork(nn.Module):
+#     def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function, dropout_nb):
+#         super(NeuralNetwork, self).__init__()
+        
+#         self.input_size = input_size
+#         self.output_size = output_size
+        
+#         self.layers = nn.ModuleList([nn.Linear(self.input_size, hidden_layer_sizes[0])] +
+#                                     [nn.Linear(hidden_layer_sizes[i], hidden_layer_sizes[i+1]) for i in range(len(hidden_layer_sizes)-1)] +
+#                                     [nn.Linear(hidden_layer_sizes[-1], self.output_size)])
+        
+#         self.activation_function = activation_function
+        
+#         if activation_function == "Sigmoid":
+#             self.activation = nn.Sigmoid()
+#         elif activation_function == "ReLU":
+#             self.activation = nn.ReLU()
+#         elif activation_function == "Tanh":
+#             self.activation = nn.Tanh()
+#         else:
+#             self.activation = nn.ReLU()
+            
+#         self.dropout = nn.Dropout(dropout_nb)
+        
+#     # Forward Function
+#     def forward(self, x):
+#         for i, layer in enumerate(self.layers):
+#             x = layer(x)
+#             if i != len(self.layers) - 1:
+#                 x = self.activation(x)
+#                 if i == len(self.layers) - 2:
+#                     x = self.dropout(x)
+#         return x
+            
+
 
 def save_regressor(trained_model): 
     """ 
@@ -507,7 +537,7 @@ def example_main():
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
-    regressor = Regressor(x_train, nb_epoch = 10)
+    regressor = Regressor(x_train, nb_epoch = 1)
     regressor.fit(x_train, y_train)
     save_regressor(regressor)
 
@@ -536,5 +566,5 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    example_main()
     
