@@ -438,11 +438,11 @@ class MultiLayerNetwork(object):
             return ReluLayer()
         elif activation_name == "sigmoid":
             return SigmoidLayer()
-        # elif activation_name == "identity":
-        #     return None
-        else:
+        elif activation_name == "identity":
             return None
-            # raise ValueError(f"Unrecognised activation function: {string_}")
+        else:
+            # return None
+            raise ValueError(f"Unrecognised activation function: {string_}")
 
     def forward(self, x):
         """
