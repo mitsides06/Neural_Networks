@@ -53,8 +53,8 @@ class NeuralNetwork(nn.Module):
 
 class Regressor():
 
-    def __init__(self, x, hidden_layer_sizes = [64, 64], batch_size = 10, learning_rate = 0.001, activation_function = "relu", optimizer = "adam", 
-                 dropout = 0.2, nb_epoch = 1000, reports_per_epoch = 100):
+    def __init__(self, x, hidden_layer_sizes = [64, 64], batch_size = 10, learning_rate = 0.001, activation_function = "relu", 
+                 optimizer = "adam", dropout = 0.2, nb_epoch = 1000, reports_per_epoch = 100):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -327,7 +327,7 @@ class Regressor():
         trigger = 0
         
         for epoch in range(self.nb_epoch):
-            # print('EPOCH {}:'.format(epoch + 1))
+            print('EPOCH {}:'.format(epoch + 1))
             
             self.model.train(True)
             
@@ -345,7 +345,7 @@ class Regressor():
                     running_vloss += vloss
                 
             avg_vloss = running_vloss / (i + 1)
-            # print('LOSS train: {}, validation MSE: {}, Validation RMSE: {}'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
+            print('LOSS train: {}, validation MSE: {}, Validation RMSE: {}'.format(avg_loss, avg_vloss, math.sqrt(avg_vloss)))
             
             rmse_avg_loss_list.append(math.sqrt(avg_loss))
             rmse_avg_vloss_list.append(math.sqrt(avg_vloss))
@@ -378,7 +378,7 @@ class Regressor():
         # if plot:
         #     plt.show()
         
-        return self.model
+        return self
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -405,7 +405,7 @@ class Regressor():
         with torch.no_grad():
             X, _ = self._preprocessor(x, training = False) # Do not forget
             
-            return np.ndarray(self.model(torch.tensor(X.values).float())) # Pass the pandas dataframe converted to a tensor to the model
+            return np.ndarray(self.model(X)) # Pass the pandas dataframe converted to a tensor to the model
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -432,8 +432,10 @@ class Regressor():
 
         with torch.no_grad():
             X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
-        
-            return mean_squared_error(np.array(Y), np.array(self.model(torch.tensor(X.values).float())), squared = False)
+            
+            predictions = self.model(X)
+            
+            return mean_squared_error(np.array(Y), np.array(predictions), squared = False)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -524,7 +526,7 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 42)
     
     regressor = Regressor(X_train, hidden_layer_sizes=[64,64,64,64], batch_size = 10, learning_rate = 0.001, 
-                          activation_function = "ReLU", optimizer = "adam", nb_epoch = 20)
+                          activation_function = "ReLU", optimizer = "adam", nb_epoch = 1)
     
     regressor.fit(X_train, y_train, plot=False)
     
