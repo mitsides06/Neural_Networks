@@ -102,22 +102,22 @@ class SigmoidLayer(Layer):
         """ 
         Constructor of the Sigmoid layer.
         """
-        self._cache_current = None # here we save last batched input x
+        self._cache_current = None
 
-    # I added this helper function
-    def differentiate(self, x):
-        """Differentiate Sigmoid function wrt x.
-
-            Args:
-                x (np.ndarray) : Input array of shape (batch_size, n_in)
-
-            Returns:
-                np.ndarray : Element-wise transormation of the inputs using the deriavtive of the Sigmoid function
+    @staticmethod
+    def sigmoid(x):
         """
-        exp_ = np.exp(-x)   # exp(-x)
-        sigmoid = 1 / (1 + exp_) # sigmoid function
-        derivative_of_sigmoid = sigmoid * (1 - sigmoid)
-        return derivative_of_sigmoid
+        Compute the sigmoid function, applied to the input x.
+
+        Arguments:
+            x {np.ndarray} -- Input array of shape (batch_size, n_in).
+
+        Returns:
+            {np.ndarray} -- Sigmoid of the input array applied
+                            element-wise.
+        """
+        # Element-wise sigmoid computation
+        return 1 / (1 + np.exp(-x))
 
     def forward(self, x):
         """ 
@@ -130,17 +130,16 @@ class SigmoidLayer(Layer):
             x {np.ndarray} -- Input array of shape (batch_size, n_in).
 
         Returns:
-            {np.ndarray} -- Output array of shape (batch_size, n_out)
+            {np.ndarray} -- Output array of shape (batch_size, n_out), which is
+                            the sigmoid of the input.
         """
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
-        self._cache_current = x   # save input in attribute _cache_current
-        exp_ = np.exp(-x)  # exp(-x)
-        sigmoid = 1 / (1 + exp_)
-
-        return sigmoid
+        # Compute the sigmoid of the input and cache it
+        output = self.sigmoid(x)
+        self._cache_current = output
+        return output
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -163,10 +162,12 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        x = self._cache_current # access input
-        sigmoid_derivative = self.differentiate(x)  # derivative of sigmoid wrt layer input
+        # Compute the derivative of the sigmoid using the cached output
+        sigmoid_output = self._cache_current
+        sigmoid_derivative = sigmoid_output * (1 - sigmoid_output)
 
-        return np.multiply(grad_z, sigmoid_derivative)  #  -- (delta(loss) / delta(A)) o g'(Z) --   here A is the output of this class' forward function (activation output), in the funtion they define this as z
+        # Hadamard product of the incoming gradient with the sigmoid derivative
+        return grad_z * sigmoid_derivative
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -184,20 +185,6 @@ class ReluLayer(Layer):
         """
         self._cache_current = None # here we save last batched input x
 
-    # I added this helper function
-    def differentiate(self, x):
-        """ Differentiate Relu function wrt x.
-            Args:
-                x (np.ndarray) : Input array of shape (batch_size, n_in)
-
-            Returns:
-                np.ndarray : Element-wise transormation of the inputs using the deriavtive of the Relu function
-        """
-        x[x > 0] = 1  # where entry is larger than 0, replace it with 1
-        x[x <= 0] = 0  # where entry is non-positive, replace it with 0
-
-        return x
-
     def forward(self, x):
         """ 
         Performs forward pass through the Relu layer.
@@ -214,10 +201,12 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._cache_current = x  # save input x
-        x[x <= 0] = 0  # where entry is non-positive, replace it with 0
+        # Apply ReLU to each element: if x > 0, output x; otherwise, output 0
+        output = np.maximum(0.0, x)
+        # Cache the output
+        self._cache_current = output
 
-        return x
+        return output
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -240,11 +229,14 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        x = self._cache_current # access layer input
-        relu_derivative = self.differentiate(x)
-        
-        return np.multiply(grad_z, relu_derivative)    #  -- (delta(loss) / delta(A)) o g'(Z) --   here A is the output of this class' forward function (activation output), in the funtion they define this as z
-    
+        # Compute the derivative of ReLU (1 where output > 0; 0 otherwise) by
+        # converting booleans (True/False) for output > 0 to integers (1/0)
+        output = self._cache_current
+        relu_derivative = (output > 0).astype(np.int64)
+
+        # Hadamard product of the incoming gradient with the ReLU derivative
+        return grad_z * relu_derivative
+
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -269,12 +261,17 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W = xavier_init((n_in, n_out))   # random matrix with the required dimensions
-        self._b = np.zeros((1, n_out), dtype=np.float64)  # zero matrix with the required dimensions 
+        # Use a uniform Xavier initialisation of the weights matrix
+        self._W = xavier_init((n_in, n_out))
+        # Initialise biases as a one-dimensional array of zeros
+        self._b = np.zeros(n_out)
 
-        self._cache_current = None  # here we save the last batched input x
-        self._grad_W_current = None  # here we save the last partial derivative of loss wrt W update
-        self._grad_b_current = None  # here we save the last partial derivative of loss wrt b update
+        # Cache for storing the input 'x' of the forward pass
+        self._cache_current = None
+        # Cache for storing the computed gradient of the loss wrt the weights
+        self._grad_W_current = None
+        # Cache for storing the computed gradient of the loss wrt the biases
+        self._grad_b_current = None
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -296,11 +293,14 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # Affine transformation to get the output Z = XW + B
+        # The biases '_b' are broadcasted to match the shape of 'x @ _W'
+        z = (x @ self._W) + self._b
 
-        Z = (x @ self._W) + self._b   # calculate Z
-        self._cache_current = x  # assign batched x to the attribute _cache_current
+        # Store the input 'x' in the cache for use during the backward pass
+        self._cache_current = x
 
-        return Z  # output Z
+        return z  # output z
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -322,12 +322,19 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        batch_size = grad_z.shape[0]  # to have easier access to the value of batch_size
-        self._grad_W_current = self._cache_current.T @ grad_z   # partial derivative of loss wrt W  -- X^T @ (delta(loss) / delta(Z)) --
-        self._grad_b_current = np.ones((1, batch_size)) @ grad_z    # partial derivative of loss wrt b -- 1^T @ (delta(loss) / delta(Z)) --
-        grad_loss_X = grad_z @ self._W.T    # partial derivative of loss wrt X -- (delta(loss) / delta(Z)) @ W^T --
+        # Retrieve the input 'x' used during the forward pass
+        x = self._cache_current
 
-        return grad_loss_X
+        # Compute gradient of the function wrt to the layer parameters:
+        # Compute gradient of the loss with respect to the weights ('_W')
+        self._grad_W_current = x.T @ grad_z
+        # Compute gradient of the loss with respect to the biases ('_b')
+        self._grad_b_current = np.sum(grad_z, axis=0)
+
+        # Compute and return gradient of the function wrt to the layer inputs:
+        grad_input_x = grad_z @ self._W.T
+
+        return grad_input_x
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -343,8 +350,11 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W -= learning_rate * self._grad_W_current  # update W parameter
-        self._b -= learning_rate * self._grad_b_current  # update b parameter 
+        # Update weights using the learning rate and the gradient of weights
+        self._W -= learning_rate * self._grad_W_current
+
+        # Update biases using the learning rate and the gradient of biases
+        self._b -= learning_rate * self._grad_b_current
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -364,51 +374,74 @@ class MultiLayerNetwork(object):
         Arguments:
             - input_dim {int} -- Number of features in the input (excluding 
                 the batch dimension).
-            - neurons {list} -- Number of neurons in each linear layer 
-                represented as a list. The length of the list determines the 
+            - neurons {list} -- Number of neurons in each linear layer
+                represented as a list. The length of the list determines the
                 number of linear layers.
             - activations {list} -- List of the activation functions to apply 
                 to the output of each linear layer.
         """
+        # Ensure number of layers matches number of activation functions
+        assert len(neurons) == len(activations), \
+            "Number of layers must match number of activations"
+
         self.input_dim = input_dim
         self.neurons = neurons
         self.activations = activations
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # List to store layers in the network
         self._layers = []
         no_of_layers = len(neurons)
 
-        # Here I create the first linear-activation layer pair
-        if no_of_layers > 0:
-            first_layer = LinearLayer(input_dim, neurons[0])
-            self._layers.append(first_layer)
-            self._layers.append(self.convert_to_activation(activations[0]))   # see below the helper function
-        
-        if no_of_layers > 1:
-            for i in range(no_of_layers-1):
-                self._layers.append(LinearLayer(neurons[i], neurons[i+1]))  # appending linear layer with the required inputs
-                self._layers.append(self.convert_to_activation(activations[i+1]))  # appending activation layer using the activation list and the helper function, if activation string is not relu or sigmoid, we append None
+        # Create all layers in the network using a single loop
+        for i in range(no_of_layers):
+            # Determine the number of input features for the current layer
+            n_in = input_dim if i == 0 else neurons[i - 1]
+            n_out = neurons[i]
+
+            # Initialize the linear layer and add it to the network
+            self._layers.append(LinearLayer(n_in, n_out))
+
+            # Get the activation layer instance, only append if it's not None
+            activation_layer = self._convert_to_activation(activations[i])
+            if activation_layer:
+                self._layers.append(activation_layer)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    # I added this helepr function
-    def convert_to_activation(self, string_):
-        """ Converts string to activation instance.
-
-            Args:
-                string_ (str) : Name of activation function
-            
-            Returns:
-                ReluLayer/SigmoidLayer/None : An activation layer instance or None depending on the input
+    def _convert_to_activation(self, string_):
         """
-        if string_ == "relu":
+        Converts a string name to an activation layer instance or returns None
+        for identity (linear) activation.
+
+        Arguments:
+            string_ {str} -- Name of the activation function. Supported values
+                             are 'relu', 'sigmoid', and 'identity'
+                             (linear activation).
+
+        Returns:
+            {Layer} -- An instance of the specified activation layer, or None
+                       for identity activation. Returns a ReluLayer instance
+                       for 'relu', a SigmoidLayer instance for 'sigmoid', and
+                       None for 'identity'.
+
+        Raises:
+            ValueError: If the provided activation function name is not
+                        'relu', 'sigmoid', or 'identity'.
+        """
+        # Convert the string to lowercase to handle different cases
+        activation_name = string_.lower()
+
+        if activation_name == "relu":
             return ReluLayer()
-        
-        if string_ == "sigmoid":
+        elif activation_name == "sigmoid":
             return SigmoidLayer()
-        
+        elif activation_name == "identity":
+            return None
+        else:
+            raise ValueError(f"Unrecognised activation function: {string_}")
 
     def forward(self, x):
         """
@@ -424,12 +457,14 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # Initialise the result with the input data
         result = x
-        # see chapter 5 page 21 from slides
-        for i in range(2 * len(self.activations)):
-            if self._layers[i] is not None:
-                result = self._layers[i].forward(result)
 
+        # Sequentially apply forward pass of each network layer to the result
+        for layer in self._layers:
+            result = layer.forward(result)
+
+        # Return the final output after all layers have been applied
         return result 
 
         #######################################################################
@@ -454,13 +489,15 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        result = grad_z
-        # see chapter 5 page 21 from slides
-        for i in range(1, (2*len(self.activations))+1):
-            if self._layers[-i] is not None:
-                result = self._layers[-i].backward(result)
+        # Initialise the result with the gradient from the final layer
+        grad_result = grad_z
 
-        return result
+        # Sequentially apply backward pass of each layer in reverse order
+        for layer in reversed(self._layers):
+            grad_result = layer.backward(grad_result)
+
+        # Return the final gradient after all layers have been applied
+        return grad_result
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -476,11 +513,9 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        
-        # we update parameters only when we are in the linear layer
-        for i in range(len(self.activations)):
-            self._layers[2*i].update_params(learning_rate)
-
+        # Update the parameters of each layer using the stored gradients
+        for layer in self._layers:
+            layer.update_params(learning_rate)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -541,7 +576,13 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._loss_layer = None
+        # Initialise the loss layer based on the specified loss function
+        if self.loss_fun == "mse":
+            self._loss_layer = MSELossLayer()
+        elif self.loss_fun == "cross_entropy":
+            self._loss_layer = CrossEntropyLossLayer()
+        else:
+            raise ValueError(f"Unrecognised loss function: {self.loss_fun}")
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -564,7 +605,26 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # Ensure both input_dataset & target_dataset are two-dimensional arrays
+        if input_dataset.ndim == 1:
+            input_dataset = np.reshape(input_dataset, (-1, 1))
+        if target_dataset.ndim == 1:
+            target_dataset = np.reshape(target_dataset, (-1, 1))
+
+        # Initialise a new random number generator (rng) with a fixed seed
+        seed = 12345
+        rng = np.random.default_rng(seed)
+
+        # Generate a random permutation of indices for the dataset
+        randomised_indices = rng.permutation(input_dataset.shape[0])
+
+        # Shuffle both datasets using the same random indices
+        # This maintains alignment between each input and corresponding target
+        shuffled_inputs = input_dataset[randomised_indices]
+        shuffled_targets = target_dataset[randomised_indices]
+
+        # Return the shuffled datasets
+        return shuffled_inputs, shuffled_targets
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -593,7 +653,31 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        for epoch in range(self.nb_epoch):
+            # Shuffle the dataset if the shuffle_flag is set to True
+            if self.shuffle_flag == True:
+                input_dataset, target_dataset = self.shuffle(input_dataset,
+                                                             target_dataset)
+
+            # Get the total number of data points in the training dataset
+            no_of_data_points = len(input_dataset)
+
+            # Iterate over mini-batches
+            for i in range(0, no_of_data_points, self.batch_size):
+                # Extract the current batch from the dataset
+                batch_inputs = input_dataset[i:i + self.batch_size]
+                batch_targets = target_dataset[i:i + self.batch_size]
+
+                # Forward pass
+                outputs = self.network.forward(batch_inputs)
+                loss = self._loss_layer.forward(outputs, batch_targets)
+
+                # Backward pass
+                grad_loss = self._loss_layer.backward()
+                self.network.backward(grad_loss)
+
+                # Update parameters using one-step gradient descent
+                self.network.update_params(self.learning_rate)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -616,7 +700,9 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # Perform a forward pass and compute the loss
+        outputs = self.network.forward(input_dataset)
+        return self._loss_layer.forward(outputs, target_dataset)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -641,7 +727,16 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # Compute the minimum value for each feature in the dataset
+        self._features_min = np.min(data, axis=0)
+
+        # Compute the maximum value for each feature in the dataset
+        self._features_max = np.max(data, axis=0)
+
+        # Calculate the range for each feature
+        self._features_range = self._features_max - self._features_min
+        # Handle the case where max equal to min to avoid division by zero
+        self._features_range[self._features_range == 0] = 1
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -660,7 +755,8 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # Apply min-max scaling to the data using the precomputed range
+        return (data - self._features_min) / self._features_range
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -679,7 +775,8 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # Revert the min-max scaling using the precomputed range
+        return data * self._features_range + self._features_min
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -731,7 +828,10 @@ def example_main():
 
 if __name__ == "__main__":
     #example_main()
-    network = MultiLayerNetwork(input_dim=4, neurons=[16,16,4,4,2,2,4], activations=["relu", "relu", "identity","relu", "sigmoid", "relu", "sigmoid"])
+    network = MultiLayerNetwork(input_dim=4, neurons=[16,16,4,4,2,2,4],
+                                activations=["relu", "relu", "identity",
+                                             "relu","sigmoid", "relu",
+                                             "sigmoid"])
     inputs = np.array([[3,1,4,5], [7,3,9,0], [1,5,3,7], [6,2,8,9]])
     outputs = network.forward(inputs)
     
