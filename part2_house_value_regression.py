@@ -287,7 +287,7 @@ class Regressor():
         return last_loss
     
     
-    def fit(self, x, y, plot=False):
+    def fit_special(self, x, y, plot=False):
         """
         Regressor training function
 
@@ -374,14 +374,48 @@ class Regressor():
         # if plot:
         #     plt.show()
         
-        print(self)
-        return self.model
+        return self
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
     
-      
+    
+    def fit(self, x, y):
+        """
+        Regressor training function
+
+        Arguments:
+            - x {pd.DataFrame} -- Raw input array of shape 
+                (batch_size, input_size).
+            - y {pd.DataFrame} -- Raw output array of shape (batch_size, 1).
+
+        Returns:
+            self {Regressor} -- Trained model.
+
+        """
+
+        #######################################################################
+        #                       ** START OF YOUR CODE **
+        #######################################################################
+
+        # Preprocess the data
+        X, Y = self._preprocessor(x, y = y, training = True)
+        
+        loss = nn.MSELoss()
+        optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        
+        for _ in range(self.nb_epoch):
+            optimizer.zero_grad()
+            predictions = self.model.forward(X)
+            mse_loss = loss.forward(input=predictions, target=Y)
+            mse_loss.backward()
+            optimizer.step()
+            
+            print("MSE Loss: ", mse_loss.item())
+        return self
+    
+    
     def predict(self, x):
         """
         Output the value corresponding to an input x.
@@ -525,12 +559,11 @@ def main():
     regressor = Regressor(X_train, hidden_layer_sizes=[64,64,64,64], batch_size = 10, learning_rate = 0.001, 
                           activation_function = "ReLU", optimizer = "adam", nb_epoch = 1)
     
-    regressor.fit(X_train, y_train, plot=False)
+    regressor.fit(X_train, y_train)
     
     RMSE = regressor.score(X_test, y_test)
     
     save_regressor(regressor)
-    
     
     print("Testing Score (RMSE): ", RMSE)
 
