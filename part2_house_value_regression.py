@@ -59,7 +59,7 @@ class Regressor():
         # Remember to set them with a default value for LabTS tests
         """ 
         Initialise the model.
-          
+        
         Arguments:
             - x {pd.DataFrame} -- Raw input data of shape 
                 (batch_size, input_size), used to compute the size 
@@ -106,8 +106,6 @@ class Regressor():
         
         else: # Default to Adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
-        
-        return
 
         #######################################################################
         #                       ** END OF YOUR CODE **
