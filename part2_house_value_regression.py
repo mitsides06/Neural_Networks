@@ -540,7 +540,7 @@ def example_main():
     # to make sure the model isn't overfitting
     regressor = Regressor(x_train, nb_epoch = 1)
     regressor.fit(x_train, y_train)
-    save_regressor(regressor.model)
+    save_regressor(regressor)
 
     # Error
     error = regressor.score(x_train, y_train)
@@ -557,21 +557,17 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 42)
     
     regressor = Regressor(X_train, hidden_layer_sizes=[64,64,64,64], batch_size = 10, learning_rate = 0.001, 
-                          activation_function = "ReLU", optimizer = "adam", nb_epoch = 1)
+                          activation_function = "ReLU", optimizer = "adam", nb_epoch = 1000)
     
     regressor.fit(X_train, y_train)
     
     RMSE = regressor.score(X_test, y_test)
     
-    save_regressor(regressor)
+    save_regressor(regressor.model)
     
     print("Testing Score (RMSE): ", RMSE)
 
 if __name__ == "__main__":
 
     main()
-    
-    trained_model = load_regressor()
-    
-    print(trained_model)
     
