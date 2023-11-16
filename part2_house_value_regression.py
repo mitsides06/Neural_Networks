@@ -90,7 +90,11 @@ class Regressor():
         self.batch_size = batch_size 
         self.reports_per_epoch = reports_per_epoch
         
-        self.model = NeuralNetwork(self.input_size, self.output_size, hidden_layer_sizes, activation_function, dropout_nb = dropout)
+        
+        self.hidden_layer_sizes = hidden_layer_sizes
+        self.activation_function = activation_function
+        self.dropout = dropout
+        self.model = NeuralNetwork(self.input_size, self.output_size, self.hidden_layer_sizes, self.activation_function, dropout_nb = self.dropout)
         
         self.loss_fn = nn.MSELoss()
         
@@ -374,7 +378,7 @@ class Regressor():
         # if plot:
         #     plt.show()
         
-        return self
+        return self.model
 
         #######################################################################
         #                       ** END OF YOUR CODE **
