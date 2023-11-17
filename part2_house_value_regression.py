@@ -186,18 +186,23 @@ class Regressor():
             _type_: all nan are filled with random variables
         """
         for label in raw_input.columns: # loop for all labels
-            if raw_input[label].dtype == "object": # if label is not a float, skip
-                continue
-            mean = raw_input[label].mean() # label mean 
-            std_dev = raw_input[label].std() # label std dev
-            mask = raw_input[label].isnull() # find where empty values exist
-            num_empty = mask.sum()
-            
-            if num_empty > 0: # if empty values detected
-                random_values = np.random.normal(mean, std_dev, size=num_empty).astype(int) # generate a list of varying random variables
-                random_values[random_values < 0] = 0 # only total_bedrooms has empty values, ensure values are positive whole numbers
+            if raw_input[label].dtype == 'object': # if label is not a float, skip
+                mask = raw_input[label].isnull() # find where empty values exist
+                num_empty = mask.sum()
                 
-                raw_input.loc[mask, label] = random_values # assign a random value to each of the empty values
+                if num_empty > 0: # if empty values detected
+                    raw_input.loc[mask, label] = raw_input[label].mode() # assign a random value to each of the empty values
+            else:
+                mean = raw_input[label].mean() # label mean 
+                std_dev = raw_input[label].std() # label std dev
+                mask = raw_input[label].isnull() # find where empty values exist
+                num_empty = mask.sum()
+            
+                if num_empty > 0: # if empty values detected
+                    random_values = np.random.normal(mean, std_dev, size=num_empty).astype(int) # generate a list of varying random variables
+                    random_values[random_values < 0] = 0 # only total_bedrooms has empty values, ensure values are positive whole numbers
+                    
+                    raw_input.loc[mask, label] = random_values # assign a random value to each of the empty values
                 
         return raw_input
 
