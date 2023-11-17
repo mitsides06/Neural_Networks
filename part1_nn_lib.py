@@ -400,7 +400,7 @@ class MultiLayerNetwork(object):
             n_in = input_dim if i == 0 else neurons[i - 1]
             n_out = neurons[i]
 
-            # Initialize the linear layer and add it to the network
+            # Initialise the linear layer and add it to the network
             self._layers.append(LinearLayer(n_in, n_out))
 
             # Get the activation layer instance, only append if it's not None
@@ -441,7 +441,6 @@ class MultiLayerNetwork(object):
         elif activation_name == "identity":
             return None
         else:
-            # return None
             raise ValueError(f"Unrecognised activation function: {string_}")
 
     def forward(self, x):
@@ -609,7 +608,7 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # Ensure both input_dataset & target_dataset are two-dimensional arrays
+        # Ensure the input_dataset is a two-dimensional array
         if input_dataset.ndim == 1:
             input_dataset = np.reshape(input_dataset, (-1, 1))
 
