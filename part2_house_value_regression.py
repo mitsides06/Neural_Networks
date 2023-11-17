@@ -342,6 +342,7 @@ def example_main():
     # Training
     regressor = Regressor(x_train, nb_epoch = 1000, learn_rate = 0.05, no_of_layers = 4, no_of_neurons = 5, act_function = "relu")
     regressor.fit(x_train, y_train)
+    save_regressor(regressor) # save pickle
 
     # Error
     error = regressor.score(x_test, y_test)
