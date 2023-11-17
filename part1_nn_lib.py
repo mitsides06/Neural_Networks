@@ -586,7 +586,6 @@ class Trainer(object):
         elif loss_fun_name == "cross_entropy":
             self._loss_layer = CrossEntropyLossLayer()
         else:
-            # self._loss_layer = None
             raise ValueError(f"Unrecognised loss function: {self.loss_fun}")
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -613,11 +612,13 @@ class Trainer(object):
         # Ensure both input_dataset & target_dataset are two-dimensional arrays
         if input_dataset.ndim == 1:
             input_dataset = np.reshape(input_dataset, (-1, 1))
-        if target_dataset.ndim == 1:
-            target_dataset = np.reshape(target_dataset, (-1, 1))
+
+        # Initialise a new random number generator (rng) with a fixed seed
+        seed = 12345
+        rng = np.random.default_rng(seed)
 
         # Generate a random permutation of indices for the dataset
-        randomised_indices = np.random.permutation(len(input_dataset))
+        randomised_indices = rng.permutation(input_dataset.shape[0])
 
         # Shuffle both datasets using the same random indices
         # This maintains alignment between each input and corresponding target
