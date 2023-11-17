@@ -98,7 +98,7 @@ class Regressor():
                                    hidden_layer_sizes=self.hidden_layer_sizes,
                                    activation_function=self.activation_function, dropout_nb=self.dropout)
         
-        self.loss_fn = nn.MSELoss()
+        # self.loss_fn = nn.MSELoss()
         
         # Optimizer
         if optimizer == "adam":
@@ -416,8 +416,9 @@ class Regressor():
             mse_loss = loss.forward(input=predictions, target=Y)
             mse_loss.backward()
             optimizer.step()
-            
+            print("hello")
             print("MSE Loss: ", mse_loss.item())
+
         return self
     
     
