@@ -139,6 +139,7 @@ class SigmoidLayer(Layer):
         # Compute the sigmoid of the input and cache it
         output = self.sigmoid(x)
         self._cache_current = output
+
         return output
 
         #######################################################################
@@ -183,7 +184,7 @@ class ReluLayer(Layer):
         """
         Constructor of the Relu layer.
         """
-        self._cache_current = None # here we save last batched input x
+        self._cache_current = None 
 
     def forward(self, x):
         """ 
@@ -203,6 +204,7 @@ class ReluLayer(Layer):
         #######################################################################
         # Apply ReLU to each element: if x > 0, output x; otherwise, output 0
         output = np.maximum(0.0, x)
+        
         # Cache the output
         self._cache_current = output
 
@@ -263,13 +265,16 @@ class LinearLayer(Layer):
         #######################################################################
         # Use a uniform Xavier initialisation of the weights matrix
         self._W = xavier_init((n_in, n_out))
+
         # Initialise biases as a one-dimensional array of zeros
         self._b = np.zeros(n_out)
 
         # Cache for storing the input 'x' of the forward pass
         self._cache_current = None
+
         # Cache for storing the computed gradient of the loss wrt the weights
         self._grad_W_current = None
+        
         # Cache for storing the computed gradient of the loss wrt the biases
         self._grad_b_current = None
 
@@ -325,9 +330,9 @@ class LinearLayer(Layer):
         # Retrieve the input 'x' used during the forward pass
         x = self._cache_current
 
-        # Compute gradient of the function wrt to the layer parameters:
         # Compute gradient of the loss with respect to the weights ('_W')
         self._grad_W_current = x.T @ grad_z
+
         # Compute gradient of the loss with respect to the biases ('_b')
         self._grad_b_current = np.sum(grad_z, axis=0)
 
