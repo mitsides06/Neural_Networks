@@ -400,7 +400,7 @@ class MultiLayerNetwork(object):
             n_in = input_dim if i == 0 else neurons[i - 1]
             n_out = neurons[i]
 
-            # Initialize the linear layer and add it to the network
+            # Initialise the linear layer and add it to the network
             self._layers.append(LinearLayer(n_in, n_out))
 
             # Get the activation layer instance, only append if it's not None
@@ -576,10 +576,13 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # Convert the string to lowercase to handle different cases
+        loss_fun_name = self.loss_fun.lower()
+
         # Initialise the loss layer based on the specified loss function
-        if self.loss_fun == "mse":
+        if loss_fun_name == "mse":
             self._loss_layer = MSELossLayer()
-        elif self.loss_fun == "cross_entropy":
+        elif loss_fun_name == "cross_entropy":
             self._loss_layer = CrossEntropyLossLayer()
         else:
             raise ValueError(f"Unrecognised loss function: {self.loss_fun}")
@@ -605,11 +608,9 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # Ensure both input_dataset & target_dataset are two-dimensional arrays
+        # Ensure the input_dataset is a two-dimensional array
         if input_dataset.ndim == 1:
             input_dataset = np.reshape(input_dataset, (-1, 1))
-        if target_dataset.ndim == 1:
-            target_dataset = np.reshape(target_dataset, (-1, 1))
 
         # Initialise a new random number generator (rng) with a fixed seed
         seed = 12345
@@ -827,7 +828,7 @@ def example_main():
 
 
 if __name__ == "__main__":
-    #example_main()
+    example_main()
     network = MultiLayerNetwork(input_dim=4, neurons=[16,16,4,4,2,2,4],
                                 activations=["relu", "relu", "identity",
                                              "relu","sigmoid", "relu",
