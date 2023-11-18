@@ -10,7 +10,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
-
+ 
 class NueralNetwork(nn.Module):
     def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function):
         super().__init__()
@@ -40,7 +40,28 @@ class NueralNetwork(nn.Module):
         # No activation function on the last layer
         x = self.layers[-1](x)
         return x
-        
+
+
+class EarlyStopping():
+    def __init__(self, patience=5, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float("inf")
+    
+    def early_stop(self, validation_loss):
+        # validation loss is less than min validation loss
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+            
+        # validation loss is greater than min validation loss but less than min validation loss + min delta
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
 
 class Regressor():
 
@@ -77,6 +98,8 @@ class Regressor():
         self.optimizer = optimizer
         
         self.model = NueralNetwork(self.input_size, self.output_size, self.hidden_layer_sizes, self.activation_function)
+        
+        self.early_stopping = EarlyStopping()
         
         return
     
@@ -182,7 +205,9 @@ class Regressor():
             
             print("Training Loss: {}, Validation Loss: {}".format(mse, vloss))
             
-            
+            if self.early_stopping.early_stop(vloss):
+                print("Early stopping")
+                break
             
         return self
 
@@ -289,6 +314,8 @@ def example_main():
     # Splitting input and output
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
+    
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
 
     # Training
     # This example trains on the whole available dataset. 
@@ -299,7 +326,7 @@ def example_main():
     save_regressor(regressor)
 
     # Error
-    error = regressor.score(x_train, y_train)
+    error = regressor.score(x_test, y_test)
     print("\nRegressor error: {}\n".format(error))
 
 
