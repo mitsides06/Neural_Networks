@@ -5,10 +5,13 @@ import torch.optim as optim
 from sklearn.preprocessing import StandardScaler, LabelBinarizer
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 import pickle
 import numpy as np
 import pandas as pd
+
+from skorch import NeuralNetRegressor
 
  
 class NueralNetwork(nn.Module):
@@ -25,7 +28,8 @@ class NueralNetwork(nn.Module):
             self.layers.append(nn.Linear(self.hidden_layer_sizes[i-1], self.hidden_layer_sizes[i]))
         self.layers.append(nn.Linear(self.hidden_layer_sizes[-1], self.output_size))
 
-    def forward(self, x):
+
+    def forward(self, X):
         
         if self.activation_function == 'relu':
             activation = torch.nn.ReLU()
@@ -35,11 +39,11 @@ class NueralNetwork(nn.Module):
             activation = torch.nn.Tanh()
         
         for layer in self.layers[:-1]:
-            x = activation(layer(x))
+            X = activation(layer(X))
         
         # No activation function on the last layer
-        x = self.layers[-1](x)
-        return x
+        X = self.layers[-1](X)
+        return X
 
 
 class EarlyStopping():
@@ -48,6 +52,7 @@ class EarlyStopping():
         self.min_delta = min_delta
         self.counter = 0
         self.min_validation_loss = float("inf")
+    
     
     def early_stop(self, validation_loss):
         # validation loss is less than min validation loss
@@ -66,7 +71,7 @@ class EarlyStopping():
 class Regressor():
 
     def __init__(self, x, nb_epoch = 1000, hidden_layers = [64, 128, 256, 128, 64], activation_function = 'relu', 
-                 optimizer="RMSprop",learning_rate = 0.001):
+                 optimizer="RMSprop", learning_rate = 0.001):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -175,16 +180,16 @@ class Regressor():
 
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
         
-        x_train, x_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
+        x_train, x_val, y_train, y_val = train_test_split(X, Y, test_size=0.1, random_state=42)
 
         loss = nn.MSELoss()
         
         if self.optimizer == "Adam":
             optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        elif self.optimizer == "SGD":
-            optimizer = optim.SGD(self.model.parameters(), lr=self.learning_rate)
         elif self.optimizer == "RMSprop":
             optimizer = optim.RMSprop(self.model.parameters(), lr=self.learning_rate)
+        elif self.optimizer == "Adagrad":
+            optimizer = optim.Adagrad(self.model.parameters(), lr=self.learning_rate)
         else: # default
             optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         
@@ -203,10 +208,10 @@ class Regressor():
                 predictions = self.model(x_val)
                 vloss = loss(predictions, y_val)
             
-            print("Training Loss: {}, Validation Loss: {}".format(mse, vloss))
+            # print("Training Loss: {}, Validation Loss: {}".format(mse, vloss))
             
             if self.early_stopping.early_stop(vloss):
-                print("Early stopping")
+                # print("Early stopping")
                 break
             
         return self
@@ -254,13 +259,16 @@ class Regressor():
             predictions = self.model(X)
             
             return mean_squared_error(np.array(Y), np.array(predictions), squared=False)
-        
+    
+    
     def set_params(self, **parameters):
         for parameter, value in parameters.items():
             setattr(self, parameter, value)
-            
-    def get_params(self, deep=False):
-        return {"nb_epoch": self.nb_epoch, "hidden_layers": self.hidden_layer_sizes, "activation_function": self.activation_function,
+        return self
+    
+       
+    def get_params(self, deep=True):
+        return {"hidden_layers": self.hidden_layer_sizes, "activation_function": self.activation_function,
                 "optimizer": self.optimizer, "learning_rate": self.learning_rate}
 
 
@@ -298,48 +306,65 @@ def RegressorHyperParameterSearch(x_train, y_train):
         The function should return your optimised hyper-parameters. 
 
     """
-
-    #######################################################################
-    #                       ** START OF YOUR CODE **
-    #######################################################################
+    
+    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
 
     # Define the parameter grid to search
     param_grid = {
         'hidden_layers': [
+            [16],
+            [16, 16],
+            [16, 16, 16],
+            [16, 16, 16, 16],
+            [32],
+            [32, 32],
             [32, 32, 32],
             [32, 32, 32, 32],
-            [32, 32, 32, 32, 32],
+            [64],
+            [64, 64],
             [64, 64, 64],
             [64, 64, 64, 64],
-            [64, 64, 64, 64, 64],
+            [128],
+            [128, 128],
             [128, 128, 128],
             [128, 128, 128, 128],
-            [128, 128, 128, 128, 128],
             ],
         'activation_function': ['relu', 'sigmoid', 'tanh'],
-        'optimizer': ['Adam', 'SGD', 'RMSprop'],
-        'learning_rate': [0.001, 0.01, 0.1,]
+        'optimizer': ['Adam', 'Adagrad', 'RMSprop'],
+        'learning_rate': [0.001,0.005, 0.01, 0.05, 0.1]
     }
-        
-    # Instantiate GridSearchCV with 5-fold cross-validation and the specified parameter grid
-    grid_search = GridSearchCV(Regressor(x = x_train), param_grid, cv=5, scoring='accuracy')
-
-    # Fit the model using training data
-    grid_search.fit(x_train, y_train)
-
-    # Save best hyperparameter tuned model
-    save_regressor(grid_search.best_estimator_)
     
-    # Print Grid-Search info
-    print('Best Parameters: ', grid_search.best_params_)
-    print('Best Score: ', grid_search.best_score_)
-    print('Best Estimator: ', grid_search.best_estimator_)
+    best_score = float("inf")
+    best_model = None
+    counter = 0
     
-    return (grid_search.best_params_, grid_search.best_score_) # Return the chosen hyper parameters
+    parameter_storage = []
+    
+    for hidden_layer in param_grid['hidden_layers']:
+        for activation_function in param_grid['activation_function']:
+            for optimizer in param_grid['optimizer']:
+                for learning_rate in param_grid['learning_rate']:
+                    print("Counter: {}".format(counter + 1))
+                    print("Hidden Layers: {}, Activation Function: {}, Optimizer: {}, Learning Rate: {}".format(hidden_layer, activation_function, optimizer, learning_rate))
+                    regressor = Regressor(x_train, hidden_layers = hidden_layer, activation_function = activation_function, 
+                                          optimizer = optimizer, learning_rate = learning_rate)
+                    regressor.fit(x_train, y_train)
+                    score = regressor.score(x_val, y_val)
+                    parameter_storage.append([len(hidden_layer) , hidden_layer[0], activation_function, optimizer, learning_rate, score])
+                    
+                    pd.DataFrame(parameter_storage, columns = ['Number of Hidden Layers', 'Number of Neurons per Layer', 'Activation Function', 'Optimizer', 'Learning Rate', 'Score']).to_csv("parameter_storage.csv", index=False)
+                    
+                    print("Score: {}".format(score))
+                    print("\n")
+                    if score < best_score:
+                        best_score = score
+                        best_model = regressor
+                        save_regressor(regressor)
 
-    #######################################################################
-    #                       ** END OF YOUR CODE **
-    #######################################################################
+                    counter += 1
+    
+    return best_model, best_score
+
 
 
 def example_main():
@@ -370,8 +395,23 @@ def example_main():
     print("\nRegressor error: {}\n".format(error))
 
 
-
 if __name__ == "__main__":
-    example_main()
     
+    output_label = "median_house_value"
 
+    # Use pandas to read CSV data as it contains various object types
+    # Feel free to use another CSV reader tool
+    # But remember that LabTS tests take Pandas DataFrame as inputs
+    data = pd.read_csv("housing.csv") 
+
+    # Splitting input and output
+    x_train = data.loc[:, data.columns != output_label]
+    y_train = data.loc[:, [output_label]]
+    
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+    
+    model, score = RegressorHyperParameterSearch(x_train, y_train)
+    
+    print("Best Score: {}".format(score))
+    
+    # example_main()
