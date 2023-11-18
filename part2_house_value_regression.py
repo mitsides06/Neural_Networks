@@ -127,8 +127,7 @@ class Regressor():
             self.lb_ocean_prox.fit(x_ocean_proximity)
             self.x_min_max_scaled.fit(x) 
             if y is not None:
-                self.y_min_max_scaled.fit(y)
-                y = pd.DataFrame(self.y_min_max_scaled.transform(y), columns=y.columns) 
+                y = pd.DataFrame(y, columns=y.columns) 
 
         # transform the arrays and convert back into DataFrames
         x_ocean_proximity_onehot = pd.DataFrame(self.lb_ocean_prox.transform(x_ocean_proximity), columns=self.lb_ocean_prox.classes_)
@@ -144,20 +143,6 @@ class Regressor():
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-
-    def _postprocessor(self, Y):
-        """
-        Postprocess y to scale back to original order of magnitude.
-
-        Arguments:
-            - Y {torch.tensor}: output from neural network, which is between 0 and 1 (batch_size, 1).
-
-        Returns:
-            - y {torch.tensor}: post-processed outputs of original order of magnitude (batch_size, 1).
-        """
-        y = self.y_min_max_scaled.inverse_transform(Y)
-        return y
-    
 
     def predict(self, x):
         """
@@ -177,7 +162,6 @@ class Regressor():
         with torch.no_grad():
             X, _ = self._preprocessor(x, training = False) # Do not forget
             output = self.model.forward(X)
-            output = self._postprocessor(output)
             return np.array(output)
 
         #######################################################################
@@ -202,7 +186,6 @@ class Regressor():
         with torch.no_grad():
             X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
             predictions = self.model.forward(X)
-            predictions = self._postprocessor(predictions)
             return mean_squared_error(np.array(y), np.array(predictions), squared=False)
 
 
