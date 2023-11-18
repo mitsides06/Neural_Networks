@@ -4,7 +4,7 @@ import torch.optim as optim
 
 from sklearn.preprocessing import StandardScaler, LabelBinarizer
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 
 import pickle
 import numpy as np
@@ -285,7 +285,7 @@ def load_regressor():
     return trained_model
 
 
-def RegressorHyperParameterSearch(): 
+def RegressorHyperParameterSearch(x_train, y_train): 
     # Ensure to add whatever inputs you deem necessary to this function
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
@@ -303,7 +303,39 @@ def RegressorHyperParameterSearch():
     #                       ** START OF YOUR CODE **
     #######################################################################
 
-    return  # Return the chosen hyper parameters
+    # Define the parameter grid to search
+    param_grid = {
+        'hidden_layers': [
+            [32, 32, 32],
+            [32, 32, 32, 32],
+            [32, 32, 32, 32, 32],
+            [64, 64, 64],
+            [64, 64, 64, 64],
+            [64, 64, 64, 64, 64],
+            [128, 128, 128],
+            [128, 128, 128, 128],
+            [128, 128, 128, 128, 128],
+            ],
+        'activation_function': ['relu', 'sigmoid', 'tanh'],
+        'optimizer': ['Adam', 'SGD', 'RMSprop'],
+        'learning_rate': [0.001, 0.01, 0.1,]
+    }
+        
+    # Instantiate GridSearchCV with 5-fold cross-validation and the specified parameter grid
+    grid_search = GridSearchCV(Regressor(x = x_train), param_grid, cv=5, scoring='accuracy')
+
+    # Fit the model using training data
+    grid_search.fit(x_train, y_train)
+
+    # Save best hyperparameter tuned model
+    save_regressor(grid_search.best_estimator_)
+    
+    # Print Grid-Search info
+    print('Best Parameters: ', grid_search.best_params_)
+    print('Best Score: ', grid_search.best_score_)
+    print('Best Estimator: ', grid_search.best_estimator_)
+    
+    return (grid_search.best_params_, grid_search.best_score_) # Return the chosen hyper parameters
 
     #######################################################################
     #                       ** END OF YOUR CODE **
@@ -336,6 +368,7 @@ def example_main():
     # Error
     error = regressor.score(x_test, y_test)
     print("\nRegressor error: {}\n".format(error))
+
 
 
 if __name__ == "__main__":
