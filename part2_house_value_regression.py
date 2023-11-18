@@ -254,6 +254,14 @@ class Regressor():
             predictions = self.model(X)
             
             return mean_squared_error(np.array(Y), np.array(predictions), squared=False)
+        
+    def set_params(self, **parameters):
+        for parameter, value in parameters.items():
+            setattr(self, parameter, value)
+            
+    def get_params(self, deep=False):
+        return {"nb_epoch": self.nb_epoch, "hidden_layers": self.hidden_layer_sizes, "activation_function": self.activation_function,
+                "optimizer": self.optimizer, "learning_rate": self.learning_rate}
 
 
 def save_regressor(trained_model): 
