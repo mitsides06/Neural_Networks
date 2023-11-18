@@ -5,13 +5,10 @@ import torch.optim as optim
 from sklearn.preprocessing import StandardScaler, LabelBinarizer
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.base import BaseEstimator, ClassifierMixin
 
 import pickle
 import numpy as np
 import pandas as pd
-
-from skorch import NeuralNetRegressor
 
  
 class NueralNetwork(nn.Module):
@@ -29,7 +26,7 @@ class NueralNetwork(nn.Module):
         self.layers.append(nn.Linear(self.hidden_layer_sizes[-1], self.output_size))
 
 
-    def forward(self, X):
+    def forward(self, x):
         
         if self.activation_function == 'relu':
             activation = torch.nn.ReLU()
@@ -39,11 +36,11 @@ class NueralNetwork(nn.Module):
             activation = torch.nn.Tanh()
         
         for layer in self.layers[:-1]:
-            X = activation(layer(X))
+            x = activation(layer(x))
         
         # No activation function on the last layer
-        X = self.layers[-1](X)
-        return X
+        x = self.layers[-1](x)
+        return x
 
 
 class EarlyStopping():
@@ -293,7 +290,7 @@ def load_regressor():
     return trained_model
 
 
-def RegressorHyperParameterSearch(x_train, y_train): 
+def RegressorHyperParameterSearch(): 
     # Ensure to add whatever inputs you deem necessary to this function
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
@@ -306,6 +303,19 @@ def RegressorHyperParameterSearch(x_train, y_train):
         The function should return your optimised hyper-parameters. 
 
     """
+    
+    output_label = "median_house_value"
+
+    # Use pandas to read CSV data as it contains various object types
+    # Feel free to use another CSV reader tool
+    # But remember that LabTS tests take Pandas DataFrame as inputs
+    data = pd.read_csv("housing.csv") 
+
+    # Splitting input and output
+    x = data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
     
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
 
@@ -363,7 +373,10 @@ def RegressorHyperParameterSearch(x_train, y_train):
 
                     counter += 1
     
-    return best_model, best_score
+    best_model_score = best_model.score(x_test, y_test)
+    print(f"Best Model Score on Test Data: {best_model_score}")
+    
+    return
 
 
 
@@ -397,21 +410,6 @@ def example_main():
 
 if __name__ == "__main__":
     
-    output_label = "median_house_value"
-
-    # Use pandas to read CSV data as it contains various object types
-    # Feel free to use another CSV reader tool
-    # But remember that LabTS tests take Pandas DataFrame as inputs
-    data = pd.read_csv("housing.csv") 
-
-    # Splitting input and output
-    x_train = data.loc[:, data.columns != output_label]
-    y_train = data.loc[:, [output_label]]
-    
-    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
-    
-    model, score = RegressorHyperParameterSearch(x_train, y_train)
-    
-    print("Best Score: {}".format(score))
+    RegressorHyperParameterSearch()
     
     # example_main()
