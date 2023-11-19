@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import random as rd   
 
 
 def xavier_init(size, gain = 1.0):
@@ -618,7 +619,7 @@ class Trainer(object):
             input_dataset = np.reshape(input_dataset, (-1, 1))
 
         # Initialise a new random number generator (rng) with a fixed seed
-        seed = 12345
+        seed = rd.randint(0,1000000000000)     # so that each time the seed number is different 
         rng = np.random.default_rng(seed)
 
         # Generate a random permutation of indices for the dataset
@@ -664,6 +665,10 @@ class Trainer(object):
             if self.shuffle_flag == True:
                 input_dataset, target_dataset = self.shuffle(input_dataset,
                                                              target_dataset)
+                
+            # check effect of shuffling with seed
+            if epoch < 5:
+                print(f"Data for epoch {epoch+1}: {input_dataset[:10,:]}\n")
 
             # Get the total number of data points in the training dataset
             no_of_data_points = len(input_dataset)
@@ -834,6 +839,7 @@ def example_main():
 
 if __name__ == "__main__":
     example_main()
+    """
     network = MultiLayerNetwork(input_dim=4, neurons=[16,16,4,4,2,2,4],
                                 activations=["relu", "relu", "identity",
                                              "relu","sigmoid", "relu",
@@ -842,5 +848,75 @@ if __name__ == "__main__":
     outputs = network.forward(inputs)
     
     print(outputs)
+    """
+    # Check shuffling
+    data = np.loadtxt("iris.dat")
+    input_dim_1 = 4
+    neurons_1 = [16, 3]
+    activations_1 = ["relu", "identity"]
+    net_1 = MultiLayerNetwork(input_dim_1, neurons_1, activations_1)
+
+
+    x_1 = data[:, :4]
+    y_1 = data[:, 4:]
+
+    split_idx = int(0.8 * len(x_1))
+
+    x_train_1 = x_1[:split_idx]
+    y_train_1 = y_1[:split_idx]
+    x_val_1 = x_1[split_idx:]
+    y_val_1 = y_1[split_idx:]
+
+    #prep_input_1 = Preprocessor(x_train_1)
+
+    #x_train_pre_1 = prep_input_1.apply(x_train_1)
+    #x_val_pre_1 = prep_input_1.apply(x_val_1)
+
+    trainer_1 = Trainer(
+        network=net_1,
+        batch_size=8,
+        nb_epoch=1000,
+        learning_rate=0.01,
+        loss_fun="cross_entropy",
+        shuffle_flag=True,
+    )
+
+    trainer_1.train(x_train_1, y_train_1)
+
+    input_dim_2 = 4
+    neurons_2 = [16, 3]
+    activations_2 = ["relu", "identity"]
+    net_2 = MultiLayerNetwork(input_dim_2, neurons_2, activations_2)
+
+
+    x_2 = data[:, :4]
+    y_2 = data[:, 4:]
+
+    split_idx_2 = int(0.8 * len(x_2))
+
+    x_train_2 = x_2[:split_idx]
+    y_train_2 = y_2[:split_idx]
+    x_val_2 = x_2[split_idx:]
+    y_val_2 = y_2[split_idx:]
+
+    #prep_input_2 = Preprocessor(x_train_2)
+
+    #x_train_pre_1 = prep_input_1.apply(x_train_1)
+    #x_val_pre_1 = prep_input_1.apply(x_val_1)
+
+    trainer_2 = Trainer(
+        network=net_2,
+        batch_size=8,
+        nb_epoch=1000,
+        learning_rate=0.01,
+        loss_fun="cross_entropy",
+        shuffle_flag=True,
+    )
+
+    trainer_2.train(x_train_2, y_train_2)
+    
+
+
+
 
 
