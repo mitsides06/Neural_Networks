@@ -10,6 +10,9 @@ import pickle
 import numpy as np
 import pandas as pd
 
+# import matplotlib.pyplot as plt
+import math
+
  
 class NueralNetwork(nn.Module):
     def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function):
@@ -44,7 +47,7 @@ class NueralNetwork(nn.Module):
 
 
 class EarlyStopping():
-    def __init__(self, patience=5, min_delta=0):
+    def __init__(self, patience=10, min_delta=0):
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
@@ -61,14 +64,15 @@ class EarlyStopping():
         elif validation_loss > (self.min_validation_loss + self.min_delta):
             self.counter += 1
             if self.counter >= self.patience:
+                print(self.counter)
                 return True
         return False
 
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000, hidden_layers = [64, 128, 256, 128, 64], activation_function = 'relu', 
-                 optimizer="RMSprop", learning_rate = 0.001):
+    def __init__(self, x, nb_epoch = 1000, hidden_layers = [128, 128, 128, 128], activation_function = 'relu', 
+                 optimizer="Adam", learning_rate = 0.01):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -177,7 +181,7 @@ class Regressor():
 
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
         
-        x_train, x_val, y_train, y_val = train_test_split(X, Y, test_size=0.1, random_state=42)
+        x_train, x_val, y_train, y_val = train_test_split(X, Y, test_size=0.1)
 
         loss = nn.MSELoss()
         
@@ -189,6 +193,9 @@ class Regressor():
             optimizer = optim.Adagrad(self.model.parameters(), lr=self.learning_rate)
         else: # default
             optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+            
+        validation_losses = []
+        training_losses = []
         
         for _ in range(self.nb_epoch):
             self.model.train(True)
@@ -198,19 +205,27 @@ class Regressor():
             mse = loss(predictions, y_train)
             mse.backward()
             optimizer.step()
-            
+            training_losses.append(math.sqrt(mse))
             self.model.eval()
             
             with torch.no_grad():
                 predictions = self.model(x_val)
                 vloss = loss(predictions, y_val)
-            
-            # print("Training Loss: {}, Validation Loss: {}".format(mse, vloss))
+                validation_losses.append(math.sqrt(vloss))
+            print("Training Loss: {}, Validation Loss: {}".format(mse, vloss))
             
             if self.early_stopping.early_stop(vloss):
-                # print("Early stopping")
+                print("Early stopping")
                 break
-            
+        
+        # plt.plot(training_losses, label="Training Loss")
+        # plt.plot(validation_losses, label="Validation Loss")
+        # plt.legend(fontsize=14, loc="upper right")
+        # plt.xlabel("Epoch", fontsize=14)
+        # plt.ylabel("RMSE", fontsize=14)
+        # plt.title("Training and Validation Loss against Epochs", fontsize=16)
+        # plt.grid()
+        # plt.show()
         return self
 
             
@@ -379,7 +394,6 @@ def RegressorHyperParameterSearch():
     return
 
 
-
 def example_main():
 
     output_label = "median_house_value"
@@ -410,6 +424,22 @@ def example_main():
 
 if __name__ == "__main__":
     
-    RegressorHyperParameterSearch()
+    # output_label = "median_house_value"
+
+    # # Use pandas to read CSV data as it contains various object types
+    # # Feel free to use another CSV reader tool
+    # # But remember that LabTS tests take Pandas DataFrame as inputs
+    # data = pd.read_csv("housing.csv") 
+
+    # # Splitting input and output
+    # x_train = data.loc[:, data.columns != output_label]
+    # y_train = data.loc[:, [output_label]]
     
-    # example_main()
+    # x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+    
+    # best_model = load_regressor()
+    
+    # test_score = best_model.score(x_test, y_test)
+    # print(test_score)
+    
+    example_main()
