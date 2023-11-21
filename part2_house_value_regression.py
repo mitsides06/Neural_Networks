@@ -14,7 +14,7 @@ import pandas as pd
 import math
 
  
-class NueralNetwork(nn.Module):
+class NeuralNetwork(nn.Module):
     def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function):
         super().__init__()
         self.input_size = input_size
@@ -103,7 +103,7 @@ class Regressor():
         self.learning_rate = learning_rate
         self.optimizer = optimizer
         
-        self.model = NueralNetwork(self.input_size, self.output_size, self.hidden_layer_sizes, self.activation_function)
+        self.model = NeuralNetwork(self.input_size, self.output_size, self.hidden_layer_sizes, self.activation_function)
         
         self.early_stopping = EarlyStopping()
         
