@@ -553,10 +553,9 @@ class Trainer(object):
         if input_dataset.ndim == 1:
             input_dataset = np.reshape(input_dataset, (-1, 1))
 
-        # Initialise a new random number generator (rng) with a fixed seed
-
-        seed = rd.randint(0,1000000000000)     # randomize the seed number so that each time the seed number is different 
-        rng = np.random.default_rng(seed)
+        # Initialise a new random number generator (rng) 
+ 
+        rng = np.random.default_rng()
 
         # Generate a random permutation of indices for the dataset
         randomised_indices = rng.permutation(input_dataset.shape[0])
