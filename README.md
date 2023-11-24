@@ -4,11 +4,14 @@ Overview
 
 This project is divided into two parts:
 
-1- Neural Network Mini-Library (part1_nn_lib.py): Implements a basic multi-layer neural network with backpropagation, data preprocessing, training, and evaluation.
-2- House Price Prediction (part2_house_value_regression.py): Utilizes PyTorch (or the mini-library) to predict house prices in California.
+1- Neural Network Mini-Library (part1_nn_lib.py): 
+Implements a basic multi-layer neural network with backpropagation, data preprocessing, training, and evaluation.
+
+2- House Price Prediction (part2_house_value_regression.py): 
+Utilises PyTorch (or the mini-library) to predict house prices in California.
 
 
-Part 1: Neural Network Mini-Library (part1_nn_lib.py)
+# Part 1 Neural Network Mini-Library (part1_nn_lib.py)
 
 Description:
 
@@ -20,30 +23,30 @@ Executing part1_nn_lib.py demonstrates creating layers, building and testing a n
 
 Example Usage:
 
-# Create a neural network
+## Create a neural network
 network = MultiLayerNetwork(input_dim=4, neurons=[16, 2], activations=["relu", "sigmoid"])
 
-# Forward and backward passes
+## Forward and backward passes
 outputs = network(inputs)
 grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
 
-# Update network parameters
+## Update network parameters
 network.update_params(learning_rate)
 
-# Train the network
+## Train the network
 trainer = Trainer(network, batch_size=32, nb_epoch=10, learning_rate=1.0e-3, shuffle_flag=True, loss_fun="mse")
 trainer.train(train_inputs, train_targets)
 
-# Evaluate on validation data
+## Evaluate on validation data
 print("Validation loss = ", trainer.eval_loss(val_inputs, val_targets))
 
-# Data normalization
+## Data normalization
 prep = Preprocessor(dataset)
 normalized_dataset = prep.apply(dataset)
 original_dataset = prep.revert(normalized_dataset)
 
 
-Part 2: California House Prices Prediction (part2_house_value_regression.py)
+#Part 2: California House Prices Prediction (part2_house_value_regression.py)
 
 Description:
 
@@ -55,11 +58,11 @@ Executing part2_house_value_regression.py involves training a regressor on the h
 
 Example Usage:
 
-# Initialize and train the regressor
+## Initialize and train the regressor
 regressor = Regressor(x_train, nb_epoch=1000)
 regressor.fit(x_train, y_train)
 
-# Save the trained model
+## Save the trained model
 save_regressor(regressor)
 
 
