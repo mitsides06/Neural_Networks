@@ -554,7 +554,6 @@ class Trainer(object):
             input_dataset = np.reshape(input_dataset, (-1, 1))
 
         # Initialise a new random number generator (rng) 
- 
         rng = np.random.default_rng()
 
         # Generate a random permutation of indices for the dataset

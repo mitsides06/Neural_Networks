@@ -15,7 +15,8 @@ import math
 
  
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size, output_size, hidden_layer_sizes, activation_function):
+    def __init__(self, input_size, output_size, hidden_layer_sizes,
+                 activation_function):
         super().__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -23,10 +24,13 @@ class NeuralNetwork(nn.Module):
         self.activation_function = activation_function
 
         self.layers = nn.ModuleList()
-        self.layers.append(nn.Linear(self.input_size, self.hidden_layer_sizes[0]))
+        self.layers.append(nn.Linear(self.input_size,
+                                     self.hidden_layer_sizes[0]))
         for i in range(1, len(self.hidden_layer_sizes)):
-            self.layers.append(nn.Linear(self.hidden_layer_sizes[i-1], self.hidden_layer_sizes[i]))
-        self.layers.append(nn.Linear(self.hidden_layer_sizes[-1], self.output_size))
+            self.layers.append(nn.Linear(self.hidden_layer_sizes[i-1],
+                                         self.hidden_layer_sizes[i]))
+        self.layers.append(nn.Linear(self.hidden_layer_sizes[-1],
+                                     self.output_size))
 
 
     def forward(self, x):
@@ -60,7 +64,8 @@ class EarlyStopping():
             self.min_validation_loss = validation_loss
             self.counter = 0
             
-        # validation loss is greater than min validation loss but less than min validation loss + min delta
+        # validation loss is greater than min validation loss but less than
+        # min validation loss + min delta
         elif validation_loss > (self.min_validation_loss + self.min_delta):
             self.counter += 1
             if self.counter >= self.patience:
@@ -71,8 +76,10 @@ class EarlyStopping():
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000, hidden_layers = [128, 128, 128, 128], activation_function = 'relu', 
-                 optimizer="Adam", learning_rate = 0.01):
+    def __init__(self, x, nb_epoch=1000,
+                 hidden_layers=[128, 128, 128, 128],
+                 activation_function='relu',
+                 optimizer="Adam", learning_rate=0.01):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -103,7 +110,9 @@ class Regressor():
         self.learning_rate = learning_rate
         self.optimizer = optimizer
         
-        self.model = NeuralNetwork(self.input_size, self.output_size, self.hidden_layer_sizes, self.activation_function)
+        self.model = NeuralNetwork(self.input_size, self.output_size,
+                                   self.hidden_layer_sizes,
+                                   self.activation_function)
         
         self.early_stopping = EarlyStopping()
         
@@ -123,14 +132,16 @@ class Regressor():
 
         Returns:
             - {torch.tensor} or {numpy.ndarray} -- Preprocessed input array of
-              size (batch_size, input_size). The input_size does not have to be the same as the input_size for x above.
+              size (batch_size, input_size). The input_size does not have to be
+              the same as the input_size for x above.
             - {torch.tensor} or {numpy.ndarray} -- Preprocessed target array of
               size (batch_size, 1).
             
         """
 
         # Raise an exception if the model is not trained yet as we need to
-        if not training and (self.categorical_x_mode is None or self.numerical_x_mean is None):
+        if not training and (self.categorical_x_mode is None or
+                             self.numerical_x_mean is None):
             raise Exception("You must train the model before testing it")
         
         # Remove rows with missing values
@@ -139,7 +150,8 @@ class Regressor():
             y = y[y.notna()]
         
         # Split numerical and categorical columns
-        non_float_columns = [col for col in x.columns if x[col].dtype != np.float64]
+        non_float_columns = [col for col in x.columns
+                             if x[col].dtype != np.float64]
         numerical_x = x.drop(non_float_columns, axis=1)
         categorical_x = x.loc[:, non_float_columns]
 
@@ -157,12 +169,20 @@ class Regressor():
             self.label_binarizer.fit(categorical_x)
         
         # Concatenate numerical and categorical columns
-        numerical_x_df = pd.DataFrame(self.standard_scaler.transform(numerical_x), columns=numerical_x.columns)
-        categorical_x_df = pd.DataFrame(self.label_binarizer.transform(categorical_x), columns=self.label_binarizer.classes_)
+        numerical_x_df = pd.DataFrame(
+            self.standard_scaler.transform(numerical_x),
+            columns=numerical_x.columns
+        )
+        categorical_x_df = pd.DataFrame(
+            self.label_binarizer.transform(categorical_x),
+            columns=self.label_binarizer.classes_
+        )
         
-        preprocessored_x = pd.concat([numerical_x_df, categorical_x_df], axis=1)
+        preprocessored_x = pd.concat([numerical_x_df, categorical_x_df],
+                                     axis=1)
     
-        return torch.tensor(preprocessored_x.values).float(), torch.tensor(y.values).float() if y is not None else None
+        return torch.tensor(preprocessored_x.values).float(), \
+            torch.tensor(y.values).float() if y is not None else None
 
         
     def fit(self, x, y):
@@ -186,13 +206,17 @@ class Regressor():
         loss = nn.MSELoss()
         
         if self.optimizer == "Adam":
-            optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+            optimizer = optim.Adam(self.model.parameters(),
+                                   lr=self.learning_rate)
         elif self.optimizer == "RMSprop":
-            optimizer = optim.RMSprop(self.model.parameters(), lr=self.learning_rate)
+            optimizer = optim.RMSprop(self.model.parameters(),
+                                      lr=self.learning_rate)
         elif self.optimizer == "Adagrad":
-            optimizer = optim.Adagrad(self.model.parameters(), lr=self.learning_rate)
+            optimizer = optim.Adagrad(self.model.parameters(),
+                                      lr=self.learning_rate)
         else: # default
-            optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+            optimizer = optim.Adam(self.model.parameters(),
+                                   lr=self.learning_rate)
             
         validation_losses = []
         training_losses = []
@@ -270,7 +294,8 @@ class Regressor():
             
             predictions = self.model(X)
             
-            return mean_squared_error(np.array(Y), np.array(predictions), squared=False)
+            return mean_squared_error(np.array(Y), np.array(predictions),
+                                      squared=False)
     
     
     def set_params(self, **parameters):
@@ -280,8 +305,10 @@ class Regressor():
     
        
     def get_params(self, deep=True):
-        return {"hidden_layers": self.hidden_layer_sizes, "activation_function": self.activation_function,
-                "optimizer": self.optimizer, "learning_rate": self.learning_rate}
+        return {"hidden_layers": self.hidden_layer_sizes,
+                "activation_function": self.activation_function,
+                "optimizer": self.optimizer,
+                "learning_rate": self.learning_rate}
 
 
 def save_regressor(trained_model): 
@@ -330,9 +357,13 @@ def RegressorHyperParameterSearch():
     x = data.loc[:, data.columns != output_label]
     y = data.loc[:, [output_label]]
     
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+    x_train, x_test, y_train, y_test = train_test_split(x, y,
+                                                        test_size=0.2,
+                                                        random_state=42)
     
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
+                                                      test_size=0.2,
+                                                      random_state=42)
 
     # Define the parameter grid to search
     param_grid = {
@@ -369,15 +400,37 @@ def RegressorHyperParameterSearch():
         for activation_function in param_grid['activation_function']:
             for optimizer in param_grid['optimizer']:
                 for learning_rate in param_grid['learning_rate']:
+
                     print("Counter: {}".format(counter + 1))
-                    print("Hidden Layers: {}, Activation Function: {}, Optimizer: {}, Learning Rate: {}".format(hidden_layer, activation_function, optimizer, learning_rate))
-                    regressor = Regressor(x_train, hidden_layers = hidden_layer, activation_function = activation_function, 
-                                          optimizer = optimizer, learning_rate = learning_rate)
+                    print("Hidden Layers: {}, Activation Function: {}, "
+                          "Optimizer: {}, Learning Rate: {}"
+                          .format(hidden_layer, activation_function,
+                                  optimizer, learning_rate))
+
+                    regressor = Regressor(
+                        x_train, hidden_layers=hidden_layer,
+                        activation_function=activation_function,
+                        optimizer=optimizer,
+                        learning_rate=learning_rate
+                    )
+
                     regressor.fit(x_train, y_train)
                     score = regressor.score(x_val, y_val)
-                    parameter_storage.append([len(hidden_layer) , hidden_layer[0], activation_function, optimizer, learning_rate, score])
+                    parameter_storage.append([len(hidden_layer),
+                                              hidden_layer[0],
+                                              activation_function,
+                                              optimizer,
+                                              learning_rate,
+                                              score])
                     
-                    pd.DataFrame(parameter_storage, columns = ['Number of Hidden Layers', 'Number of Neurons per Layer', 'Activation Function', 'Optimizer', 'Learning Rate', 'Score']).to_csv("parameter_storage.csv", index=False)
+                    pd.DataFrame(parameter_storage,
+                                 columns=['Number of Hidden Layers',
+                                          'Number of Neurons per Layer',
+                                          'Activation Function',
+                                          'Optimizer',
+                                          'Learning Rate',
+                                          'Score'])\
+                        .to_csv("parameter_storage.csv", index=False)
                     
                     print("Score: {}".format(score))
                     print("\n")
@@ -407,7 +460,9 @@ def example_main():
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
     
-    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
+                                                        test_size=0.2,
+                                                        random_state=42)
 
     # Training
     # This example trains on the whole available dataset. 
@@ -435,7 +490,9 @@ if __name__ == "__main__":
     # x_train = data.loc[:, data.columns != output_label]
     # y_train = data.loc[:, [output_label]]
     
-    # x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+    # x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
+    #                                                     test_size=0.2,
+    #                                                     random_state=42)
     
     # best_model = load_regressor()
     
