@@ -23,34 +23,34 @@ Executing `part1_nn_lib.py` demonstrates creating layers, building and testing a
 
 ### Example Usage:
 
-#### Create a neural network
+#### _Create a neural network_
 ```
 network = MultiLayerNetwork(input_dim=4, neurons=[16, 2], activations=["relu", "sigmoid"])
 ```
 
-#### Forward and backward passes
+#### _Forward and backward passes_
 ```
 outputs = network(inputs)
 grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
 ```
 
-#### Update network parameters
+#### _Update network parameters_
 ```
 network.update_params(learning_rate)
 ```
 
-#### Train the network
+#### _Train the network_
 ```
 trainer = Trainer(network, batch_size=32, nb_epoch=10, learning_rate=1.0e-3, shuffle_flag=True, loss_fun="mse")
 trainer.train(train_inputs, train_targets)
 ```
 
-#### Evaluate on validation data
+#### _Evaluate on validation data_
 ```
 print("Validation loss = ", trainer.eval_loss(val_inputs, val_targets))
 ```
 
-#### Data normalization
+#### _Data normalisation_
 ```
 prep = Preprocessor(dataset)
 normalized_dataset = prep.apply(dataset)
@@ -70,13 +70,13 @@ Executing `part2_house_value_regression.py` involves training a regressor on the
 
 ### Example Usage:
 
-#### Initialize and train the regressor
+#### _Initialize and train the regressor_
 ```
 regressor = Regressor(x_train, nb_epoch=1000)
 regressor.fit(x_train, y_train)
 ```
 
-#### Save the trained model
+#### _Save the trained model_
 ```
 save_regressor(regressor)
 ```
@@ -91,10 +91,10 @@ save_regressor(regressor)
 
 ### Running the scripts:
 
-##### For Part 1:
+##### _For Part 1:_
 `python3 part1_nn_lib.py`
 
-##### For Part 2:
+##### _For Part 2:_
 `python3 part2_house_value_regression.py`
 
 
