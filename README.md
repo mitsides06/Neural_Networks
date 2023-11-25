@@ -4,11 +4,11 @@
 
 This project is divided into two parts:
 
-1- Neural Network Mini-Library (part1_nn_lib.py): 
-	Implements a basic multi-layer neural network with backpropagation, data preprocessing, training, and evaluation.
+**1- Neural Network Mini-Library (part1_nn_lib.py):**
+   - Implements a basic multi-layer neural network with backpropagation, data preprocessing, training, and evaluation.
 
-2- House Price Prediction (part2_house_value_regression.py): 
-	Utilises PyTorch (or the mini-library) to predict house prices in California.
+**2- House Price Prediction (part2_house_value_regression.py):**
+   - Utilises PyTorch (or the mini-library) to predict house prices in California.
 
 
 ## Part 1 Neural Network Mini-Library (part1_nn_lib.py)
@@ -24,7 +24,9 @@ Executing `part1_nn_lib.py` demonstrates creating layers, building and testing a
 ### Example Usage:
 
 #### Create a neural network
-`network = MultiLayerNetwork(input_dim=4, neurons=[16, 2], activations=["relu", "sigmoid"])`
+```
+network = MultiLayerNetwork(input_dim=4, neurons=[16, 2], activations=["relu", "sigmoid"])
+```
 
 #### Forward and backward passes
 ```
@@ -33,7 +35,9 @@ grad_loss_wrt_inputs = network.backward(grad_loss_wrt_outputs)
 ```
 
 #### Update network parameters
-`network.update_params(learning_rate)`
+```
+network.update_params(learning_rate)
+```
 
 #### Train the network
 ```
@@ -42,7 +46,9 @@ trainer.train(train_inputs, train_targets)
 ```
 
 #### Evaluate on validation data
-`print("Validation loss = ", trainer.eval_loss(val_inputs, val_targets))``
+```
+print("Validation loss = ", trainer.eval_loss(val_inputs, val_targets))
+```
 
 #### Data normalization
 ```
@@ -71,7 +77,9 @@ regressor.fit(x_train, y_train)
 ```
 
 #### Save the trained model
-`save_regressor(regressor)`
+```
+save_regressor(regressor)
+```
 
 
 ## Installation and Execution
@@ -84,10 +92,10 @@ regressor.fit(x_train, y_train)
 ### Running the scripts:
 
 ##### For Part 1:
-`python part1_nn_lib.py`
+`python3 part1_nn_lib.py`
 
 ##### For Part 2:
-`python part2_house_value_regression.py`
+`python3 part2_house_value_regression.py`
 
 
 ## Additional Notes
