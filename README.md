@@ -54,7 +54,7 @@ print("Validation loss = ", trainer.eval_loss(val_inputs, val_targets))
 ```
 prep = Preprocessor(dataset)
 normalized_dataset = prep.apply(dataset)
-original_dataset = prep.revert(normalized_dataset)
+original_dataset = prep.revert(normalised_dataset)
 ```
 
 
@@ -70,7 +70,7 @@ Executing `part2_house_value_regression.py` involves training a regressor on the
 
 ### Example Usage:
 
-#### _Initialize and train the regressor_
+#### _Initialise and train the regressor_
 ```
 regressor = Regressor(x_train, nb_epoch=1000)
 regressor.fit(x_train, y_train)
